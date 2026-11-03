@@ -1,26 +1,27 @@
 <div align=center>
 
-<img src="tools/switch/icon/pacman_icon.jpg" alt="PAC-MAN Championship Edition DX" width="30%">
+<img src="tools/switch/icon/pacman_icon.jpg" alt="PAC-MAN Championship Edition DX+" width="30%">
 
 </div>
-<h1 align=center>PAC-MAN Championship Edition DX — Nintendo Switch port</h1>
+<h1 align=center>PAC-MAN Championship Edition DX+ — Nintendo Switch port</h1>
 
-A native Nintendo Switch port of the Xbox 360 version of **PAC-MAN Championship Edition DX** (Namco Bandai Games, 2010), with
-its downloadable content.
+A native Nintendo Switch port of the Xbox 360 version of **PAC-MAN Championship Edition DX+** (Namco Bandai Games, 2010, with
+its Title Update 3 of 2013), with its downloadable content.
 
-It's not an emulator. The PowerPC code of the game's `default.xex` is statically recompiled to C++ with
+It's not an emulator. The PowerPC code of the game's `default.xex`, with the title update applied, is statically recompiled to C++ with
 [ReXGlue](https://github.com/rexglue/rexglue-sdk) and compiled for the Switch, and the game's Direct3D calls are drawn
 directly on the Switch GPU's own API, deko3d, by [reNut](https://github.com/masterspike52/reNut)'s Direct3D-level renderer.
 
 > [!NOTE]
-> You need your own copy of the game: the Xbox 360 package (`Content/<profile>/58410A8C/000D0000`). The DLC package
-> (`Content/<profile>/58410A8C/00000002`, All-in-One Pack) is optional.
+> You need your own copy of the game, the Xbox 360 package (`Content/<profile>/58410A8C/000D0000`), **and its Title Update 3**
+> (`Content/0000000000000000/58410A8C/000B0000`). The DLC package (`Content/<profile>/58410A8C/00000002`, All-in-One Pack) is
+> optional. Only the title update's game asks for the DLC: the original game cannot use it.
 
 ## How to install
 
 1. Open the installer page: **https://chanseyisthebest.github.io/pacman-nx-installer/**
-2. Choose your game: its **package** (you can choose the DLC package along with it) or a **folder** you extracted the game
-   into. Then press **Create pacman-nx.zip**. Everything runs in your browser and the game files never leave your computer:
+2. Add your game and Title Update 3, and the DLC package if you have it: each as its **package file**, or a **folder** you
+   extracted it into, together or one at a time. Then press **Create pacman-nx.zip**. Everything runs in your browser and the game files never leave your computer:
    the page checks your copy, downloads the build and makes the shaders from your game's own files.
 3. Extract the downloaded `pacman-nx.zip` into `sdmc:/switch/`.
 
@@ -32,7 +33,8 @@ Your `pacman-nx` folder should look like this:
   LICENSES.txt
   pacman.toml               (your settings; written at the first start when it is missing)
   deko3d_glsl.bin           (the game's shaders, made from your copy)
-  game_root/                (the game's files)
+  game_root/                (the game's files, and the title update's default.xexp)
+  update/                   (the title update's other files)
   dlc/                      (optional: the DLC package, installed by the game at its first start)
 ```
 
@@ -45,9 +47,10 @@ give the game enough memory. If you use a forwarder, set it to a **39-bit addres
 To build everything yourself instead, see [docs/building.md](docs/building.md).
 
 > [!NOTE]
-> **Updating:** open the installer page again and press **Create pacman-nx-update.zip**. It only holds the new
-> `pacman-nx.nro` and the shaders, so there is no need to copy the game again: extract it over your folder. Your
-> `pacman.toml`, your saves and the game files stay.
+> **Updating:** open the installer page again, add your game and Title Update 3, and press **Create pacman-nx-update.zip**. It
+> holds the new `pacman-nx.nro`, the shaders and the title update, so there is no need to copy the game again: extract it over
+> your folder. Your `pacman.toml`, your saves and the game files stay. **An install made before the title update needs this
+> too:** the new program runs only with it.
 
 > [!CAUTION]
 > **The first start** takes longer if you added the DLC (about 45 s on the console): the game installs it then, once.
@@ -98,7 +101,7 @@ If you delete `pacman.toml`, the game writes the default one again at the next s
 ## Performance
 
 The port runs at the console's stock clocks on three cores, 720 lines in handheld and 1080 docked. Measured on the console
-in handheld, gameplay holds 60 fps with **16.6 ms from reading the controller to the picture**, a single refresh of the
+in handheld, before the move to the title update, gameplay holds 60 fps with **16.6 ms from reading the controller to the picture**, a single refresh of the
 display (64 ms before its frame pacing). Docked at 1080 lines was not measured on a console before release. The
 measurements and how each was made are in [docs/pacman-notes.md](docs/pacman-notes.md).
 
@@ -111,16 +114,17 @@ measurements and how each was made are in [docs/pacman-notes.md](docs/pacman-not
   [reNut](https://github.com/masterspike52/reNut)'s renderer (as the Banjo-Kazooie: Nuts & Bolts port adapted it), which
   draws them with [plume](https://github.com/renderbag/plume) on [deko3d](https://github.com/devkitPro/deko3d), the Switch
   GPU's own API: no GPU command stream is written or parsed and no EDRAM is modelled.
-- **Shaders made from your copy.** 13 of the game's 17 shaders are in `default.xex`. The installer page takes them from your
-  copy and makes `deko3d_glsl.bin` in your browser: Renut's [XenosRecomp](https://github.com/hedge-dev/XenosRecomp) translates
+- **Shaders made from your copy.** 13 of the game's 17 shaders are in its executable. The installer page applies the title
+  update to your `default.xex`, takes them from the result and makes `deko3d_glsl.bin` in your browser: Renut's [XenosRecomp](https://github.com/hedge-dev/XenosRecomp) translates
   each one to HLSL, DXC compiles it to SPIR-V, [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) turns that into GLSL
   and banjo-nx's passes trim it. The game makes the other 4, small interface shaders, at run time with its own shader
   compiler, so they are in none of its files; those 4 are built into the NRO. The console compiles each shader with
   [uam](https://github.com/devkitPro/uam) the first time it is used and keeps the result.
 - **The display starts each frame.** As [futari-nx](https://github.com/ChanseyIsTheBest/futari-nx) does, the game's frames
   start from the display's refresh, with two swapchain images, so no frame queues behind another.
-- **Machine-optimised functions.** 5,649 of the game's functions run as optimised machine copies
-  (`tools/localize_native.py`); those reached under test were compared with the generated originals, call by call.
+- **Machine-optimised functions.** 5,425 of the game's functions run as optimised machine copies
+  (`tools/localize_native.py`), each made from the title update's own code. The list comes from the original game's, whose
+  copies were compared with the generated originals call by call; the update's have not been compared that way.
 
 ## Documentation
 
@@ -155,7 +159,7 @@ shaders. The whole process is in [docs/building.md](docs/building.md).
 
 ## Credits
 
-- **Namco Bandai Games** — creators of PAC-MAN Championship Edition DX. This is an unofficial, fan-made port with no
+- **Namco Bandai Games** — creators of PAC-MAN Championship Edition DX+. This is an unofficial, fan-made port with no
   affiliation.
 - **ChanseyIsTheBest** — this port.
 - **[Tom Clay](https://github.com/rexglue/rexglue-sdk)** — the ReXGlue SDK, built on the work of the
@@ -172,7 +176,8 @@ shaders. The whole process is in [docs/building.md](docs/building.md).
 - The sibling ports: [katamari-nx](https://github.com/ChanseyIsTheBest/katamari-nx), this port's base;
   [renut-nx](https://github.com/ChanseyIsTheBest/renut-nx), [sa2-nx](https://github.com/ChanseyIsTheBest/sa2-nx),
   [futari-nx](https://github.com/ChanseyIsTheBest/futari-nx), NetherSX2_nx, battd_nx, and the bejeweled3-nx and zuma ports,
-  which share their fixes with this one.
+  which share their fixes with this one; nights-nx and peggle2-nx (the device layout of this XDK), the Ridge Racer 6 port
+  (user clip planes) and guwange-nx-installer (applying a title update in the browser).
 - **[KhronosGroup](https://github.com/KhronosGroup/SPIRV-Cross)** — SPIRV-Cross.
 - The other libraries listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

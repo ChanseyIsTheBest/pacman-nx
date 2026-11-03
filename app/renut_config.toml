@@ -1,4 +1,4 @@
-# pacman-nx (PAC-MAN Championship Edition DX, title 58410A8C, XDK 2.0.11164) - ReXGlue codegen configuration.
+# pacman-nx (PAC-MAN Championship Edition DX+, title 58410A8C, title update 3 v0.0.3.2, XDK 2.0.21250) - ReXGlue codegen configuration.
 # The project keeps banjo-nx's internal name "renut" (generated/renut_*.h, the renut / renut_recomp targets,
 # out/renut_image.bin) so banjo-nx's CMake, post-codegen passes and renderer glue work unchanged; the NRO and the SD
 # folder are pacman-nx (docs/pacman-notes.md, "Decisions").
@@ -43,23 +43,24 @@ non_volatile_as_local = true
 non_volatile_as_local_keep = ["v64-v127"]
 elide_lr_stores = true
 non_argument_as_local = true
-# 67 ENTRY and 2 RET functions (tools/diet_keep_list.py, from tools/non_argument_audit.py).
+# 74 ENTRY and 2 RET functions (tools/diet_keep_list.py, from tools/non_argument_audit.py).
 non_argument_as_local_keep = [
-    0x820FD420, 0x820FD448, 0x820FD714, 0x820FD73C, 0x820FDFD8, 0x820FDFF8, 0x820FE64C, 0x820FE974,
-    0x820FE99C, 0x820FEACC, 0x8219E4AC, 0x8219E4CC, 0x8219EDA8, 0x821A13D0, 0x821A13F0, 0x821A34A0,
-    0x821A34C0, 0x821A5070, 0x821AC378, 0x821AC398, 0x821AC89C, 0x821AC8BC, 0x821AD538, 0x821AD564,
-    0x821AD66C, 0x821AD68C, 0x821ADB3C, 0x821ADB5C, 0x821AFC58, 0x821AFD20, 0x821B035C, 0x821B037C,
-    0x821B04D8, 0x821B04F8, 0x821B0CA0, 0x821B0CC0, 0x821B0EE8, 0x821B0F08, 0x821B1650, 0x821B17BC,
-    0x821B1A80, 0x821B1C30, 0x821B1E78, 0x821B21AC, 0x823069EC, 0x823F74AC, 0x823F74CC, 0x823F76C0,
-    0x823F76E0, 0x823F7860, 0x823F7B94, 0x823F7BB4, 0x823F7DDC, 0x823F7DFC, 0x823F8594, 0x823F96A4,
-    0x823F96C4, 0x823F987C, 0x823F989C, 0x823F9C44, 0x823F9C64, 0x823FA4E4, 0x823FA504, 0x823FA76C,
-    0x823FA78C, 0x823FAD38, 0x823FAD64, 0x823FB45C, 0x823FB47C,
+    0x8214E060, 0x8214E088, 0x8214E354, 0x8214E37C, 0x8214EC18, 0x8214EC38, 0x8214F26C, 0x8214F310,
+    0x8214F54C, 0x8214F574, 0x8214F6A4, 0x8221088C, 0x822108AC, 0x82211188, 0x82214454, 0x82214AE8,
+    0x82214B08, 0x82216940, 0x82216960, 0x822182C0, 0x8221F718, 0x8221F738, 0x8221FC3C, 0x8221FC5C,
+    0x82220174, 0x82220A3C, 0x82220A5C, 0x82220DE8, 0x82220E14, 0x82220F1C, 0x82220F3C, 0x82223050,
+    0x82223118, 0x82223D70, 0x82223D90, 0x82223F14, 0x82223F34, 0x82224090, 0x822240B0, 0x822242D8,
+    0x822242F8, 0x82224A18, 0x82224B84, 0x82224E84, 0x82225038, 0x822252C4, 0x82225638, 0x8247186C,
+    0x8247188C, 0x82471A80, 0x82471AA0, 0x82471C20, 0x82471F54, 0x82471F74, 0x8247219C, 0x824721BC,
+    0x82473A64, 0x82473A84, 0x82473C3C, 0x82473C5C, 0x82474004, 0x82474024, 0x824748A4, 0x824748C4,
+    0x82474B2C, 0x82474B4C, 0x824750F8, 0x82475124, 0x8247581C, 0x8247583C, 0x824A0600, 0x824A0AE8,
+    0x824A22B0, 0x824A2700, 0x824A2A70, 0x824A2E78,
 ]
 
-# setjmp / longjmp by shape (peggle2-nx's method; tools/ppc_dis.py): setjmp 0x823F88E0 (`stfd f14,0(r3)`: the only one in the
-# image), longjmp 0x823F85C0 (`lfd f14,0(r7)`: the only one).
-setjmp_address = 0x823F88E0
-longjmp_address = 0x823F85C0
+# setjmp / longjmp by shape (peggle2-nx's method; tools/ppc_dis.py), in title update 3: setjmp 0x82472CA0 (`stfd f14,0(r3)` at
+# 0x82472CBC: the only one in the image), longjmp 0x82472980 (`lfd f14,0(r7)` at 0x824729BC: the only one).
+setjmp_address = 0x82472CA0
+longjmp_address = 0x82472980
 
 project_name = "renut"
 file_path = "assets/default.xex"

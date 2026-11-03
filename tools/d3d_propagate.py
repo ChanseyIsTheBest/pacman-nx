@@ -27,8 +27,9 @@ BASE = 0x82000000
 MAX_INSNS = 3000
 P2_TABLES = ((0x828DFDB8, 0x82600380, 101), (0x828E0278, 0x82600840, 20))
 # pacman-nx: the target's tables (tools/renut_state_tables.py: 101 + 20 records paired by default) and its code range
-TGT_TABLES = (0x8246A250, 0x8246A710)
-TGT_CODE = (0x820F0000, 0x82458B7C)
+# (title update 3, 2026-11-03; the base's were 0x8246A250, 0x8246A710 and 0x820F0000-0x82458B7C)
+TGT_TABLES = (0x824F4CB0, 0x824F5170)
+TGT_CODE = (0x82140000, 0x824D4E54)
 
 
 def starts_of(gen):

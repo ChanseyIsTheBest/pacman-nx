@@ -49,7 +49,7 @@ using namespace renut::gpu;
 // memory of resources N&B's code allocated itself.
 // katamari-nx: Beautiful Katamari's XMemFree is sub_824CAB98 (the hardware-device init frees with
 // `lis r4,0xB1800000; li r3,0; bl` to it where N&B's calls sub_822089F0).
-REX_IMPORT(__imp__sub_823FBDE8, GameXMemFree, void(u32, u32));
+REX_IMPORT(__imp__sub_82475E50, GameXMemFree, void(u32, u32));  // base sub_823FBDE8
 // The kernel's physical memory, as XPhysicalAlloc / XPhysicalFree use it.
 REX_IMPORT(__imp__MmAllocatePhysicalMemoryEx, MmAllocatePhysicalMemoryEx,
            u32(u32, u32, u32, u32, u32, u32));
@@ -96,7 +96,7 @@ void FreeHeader(u32 va) {
 // Resource data: XMemAlloc's physical path for its attributes (0x822346A8:
 // the alignment from bits 24-27, the protection from bits 28-29), then
 // XPhysicalAlloc (0x826F1FB8), which asks the kernel. 0 on failure.
-constexpr u32 kGameNoLargePagesVa = 0x8277C58C;  // pacman-nx: XPhysicalAlloc sub_821B4988;  // XPhysicalAlloc drops MEM_LARGE_PAGES while set (katamari-nx: 0x82DA3778->0x8315DFE0)
+constexpr u32 kGameNoLargePagesVa = 0x828236C4;  // pacman-nx: XPhysicalAlloc sub_821B4988;  // XPhysicalAlloc drops MEM_LARGE_PAGES while set (katamari-nx: 0x82DA3778->0x8315DFE0)
 
 u32 AllocPhysical(u32 size, u32 attributes) {
   static constexpr u32 kAlignment[16] = {4,    4,    4,     8,     16,    32,     64,     128,
@@ -121,7 +121,7 @@ void FreePhysical(u32 va) {
 
 // The GPU format table (word_82005200): per D3D format low 6 bits, bits per
 // pixel in the low byte, flags in the high one.
-constexpr u32 kFormatTable = 0x82061AD8;  // pacman-nx: Katamari's 128 bytes, word for word;  // katamari-nx: 0x82005200->0x820FA9D0
+constexpr u32 kFormatTable = 0x820B6990;  // pacman-nx: Katamari's 128 bytes, word for word;  // katamari-nx: 0x82005200->0x820FA9D0
 
 u16 FormatTableEntry(u32 format) {
   const auto *table = GuestPtr<const be_u16>(kFormatTable);
@@ -133,7 +133,7 @@ u32 FormatBitsPerPixel(u32 format) {
 }
 
 // The word at 0x82E108A0: set while a depth surface owns the HiZ memory.
-constexpr u32 kHiZOwnerVa = 0x8277C5B0;  // pacman-nx: CreateSurface sub_821C4040, Destroy sub_821C0A10;  // katamari-nx: 0x82E108A0->0x8315E830
+constexpr u32 kHiZOwnerVa = 0x828236EC;  // pacman-nx: CreateSurface sub_821C4040, Destroy sub_821C0A10;  // katamari-nx: 0x82E108A0->0x8315E830
 
 u32 LoadU32(u32 va) {
   const auto *p = GuestPtr<const be_u32>(va);
@@ -691,8 +691,8 @@ u32 LockResource(u32 resource, u32 mip_lock, u32 base_address, u32 mip_address, 
 // The lock (sub_82625A48) as N&B's code calls it: (resource, blocker type,
 // mip lock, base, mip, address, size, flags, cache flags). TU3's build
 // dropped the first release's unused second argument (always 0).
-u32 LockResource_hook(u32 resource, u32 /*type*/, u32 mip_lock, u32 base_address, u32 mip_address,
-                      u32 address, u32 size, u32 flags, u32 /*cache_flags*/) {
+u32 LockResource_hook(u32 resource, u32 /*unused*/, u32 /*type*/, u32 mip_lock, u32 base_address,  // pacman-nx (tu3): XDK 21250's form
+                      u32 mip_address, u32 address, u32 size, u32 flags, u32 /*cache_flags*/) {
   return LockResource(resource, mip_lock, base_address, mip_address, address, size, flags);
 }
 
@@ -728,8 +728,9 @@ void LockSurface(u32 texture, u32 slice, u32 level, u32 flags, u32 &address, u32
             sub.tail_offset;
 }
 
-void D3D_LockSurface_hook(u32 texture, u32 slice, u32 level, u32 flags, mapped_u32 address,
-                          mapped_u32 row_pitch, mapped_u32 slice_bytes, mapped_u32 tail_offset) {
+void D3D_LockSurface_hook(u32 texture, u32 /*unused*/, u32 slice, u32 level, u32 flags,  // pacman-nx (tu3): XDK 21250's form
+                          mapped_u32 address, mapped_u32 row_pitch, mapped_u32 slice_bytes,
+                          mapped_u32 tail_offset) {
   u32 a, p, s, t;
   LockSurface(texture, slice, level, flags, a, p, s, t);
   if (address)
@@ -744,8 +745,8 @@ void D3D_LockSurface_hook(u32 texture, u32 slice, u32 level, u32 flags, mapped_u
 
 // D3D::Lock2DSurface(D3DBaseTexture*, ArrayIndex, Level, D3DLOCKED_RECT*,
 //     const RECT*, DWORD Flags) [0x82626EB0] (TU3: no unused 0 second argument)
-void D3D_Lock2DSurface_hook(u32 texture, u32 slice, u32 level, mapped_u32 locked_rect,
-                            mapped_u32 rect, u32 flags) {
+void D3D_Lock2DSurface_hook(u32 texture, u32 /*unused*/, u32 slice, u32 level,  // pacman-nx (tu3): XDK 21250's form, nights-nx's
+                            mapped_u32 locked_rect, mapped_u32 rect, u32 flags) {
   u32 address, row_pitch, slice_bytes, tail_offset;
   LockSurface(texture, slice, level, flags, address, row_pitch, slice_bytes, tail_offset);
   if (rect) {
@@ -778,16 +779,16 @@ void D3D_Lock3DSurface_hook(u32 texture, u32 level, mapped_u32 locked_box, mappe
 // The lock entry points, which only pick the texture, slice and level.
 void D3DArrayTexture_LockRect_hook(u32 texture, u32 slice, u32 level, mapped_u32 locked_rect,
                                    mapped_u32 rect, u32 flags) {  // 0x8263E958
-  D3D_Lock2DSurface_hook(texture, slice, level, locked_rect, rect, flags);
+  D3D_Lock2DSurface_hook(texture, 0, slice, level, locked_rect, rect, flags);
 }
 void D3DLineTexture_LockRect_hook(u32 texture, u32 level, mapped_u32 locked_rect, mapped_u32 rect,
                                   u32 flags) {  // 0x8263EA50
-  D3D_Lock2DSurface_hook(texture, 0, level, locked_rect, rect, flags);
+  D3D_Lock2DSurface_hook(texture, 0, 0, level, locked_rect, rect, flags);
 }
 void D3DSurface_LockRect_hook(u32 surface, mapped_u32 locked_rect, mapped_u32 rect,
                               u32 flags) {  // 0x8263ECF0: a texture level's surface
   const u32 info = LoadU32(surface + 0x1C);
-  D3D_Lock2DSurface_hook(LoadU32(surface + 0x18), native::Extract(info, 22, 6), info >> 28,
+  D3D_Lock2DSurface_hook(LoadU32(surface + 0x18), 0, native::Extract(info, 22, 6), info >> 28,
                          locked_rect, rect, flags);
 }
 void D3DVolume_LockBox_hook(u32 volume, mapped_u32 locked_box, mapped_u32 box,
@@ -1713,48 +1714,48 @@ u32 CreateFrontBufferTexture(u32 width, u32 height, u32 format) {
 
 } // namespace renut::gpu::native
 
-BANJO_RENUT_HOOK(sub_821C4040, D3DDevice_CreateSurface_hook);  // pacman-nx: Katamari sub_824D23F8, N&B sub_8263EB88; GW
-BANJO_RENUT_HOOK(sub_821C0A10, D3DResource_Destroy_hook);  // pacman-nx: Katamari sub_824DB028, N&B sub_821D7A00; GW,NB
-BANJO_RENUT_HOOK(sub_821BFDA8, D3D_UnlockResource_hook);  // pacman-nx: Katamari sub_824DB448, N&B sub_8263D360; HAND D3D_UnlockResource: 0.72 against N&B's, 84 instructions; the tail of VertexBuffer_Unlock s
-BANJO_RENUT_HOOK(sub_821C01B8, D3DVertexBuffer_Unlock_hook);  // pacman-nx: Katamari sub_824DB7B0, N&B sub_8263D638; HAND D3DVertexBuffer_Unlock: `lwz r11,24(r3); li r5,0; rlwinm r4,r11,0,0,29; b sub_821BFDA8`, e
-BANJO_RENUT_HOOK(sub_821C2230, D3DSurface_UnlockRect_hook);  // pacman-nx: Katamari sub_824D0700, N&B sub_8263ED78; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C0C30, LockResource_hook);  // pacman-nx: Katamari sub_824DB210, N&B sub_8263D060; HAND D3D_LockResource: reads the VdGlobalDevice record 0x82000500 (0xFFCAE000, as Katamari's an
-BANJO_RENUT_HOOK(sub_821C0FF8, D3DVertexBuffer_Lock_hook);  // pacman-nx: Katamari sub_824DB760, N&B sub_8263D5E8; GW
+BANJO_RENUT_HOOK(sub_82239118, D3DDevice_CreateSurface_hook);  // pacman-nx: Katamari sub_824D23F8, N&B sub_8263EB88; GW (base sub_821C4040)
+BANJO_RENUT_HOOK(sub_822355D8, D3DResource_Destroy_hook);  // pacman-nx: Katamari sub_824DB028, N&B sub_821D7A00; GW,NB (base sub_821C0A10)
+BANJO_RENUT_HOOK(sub_82234978, D3D_UnlockResource_hook);  // pacman-nx: Katamari sub_824DB448, N&B sub_8263D360; HAND D3D_UnlockResource: 0.72 against N&B's, 84 instructions; the tail of VertexBuffer_Unlock s (base sub_821BFDA8)
+BANJO_RENUT_HOOK(sub_82234D88, D3DVertexBuffer_Unlock_hook);  // pacman-nx: Katamari sub_824DB7B0, N&B sub_8263D638; HAND D3DVertexBuffer_Unlock: `lwz r11,24(r3); li r5,0; rlwinm r4,r11,0,0,29; b sub_821BFDA8`, e (base sub_821C01B8)
+BANJO_RENUT_HOOK(sub_822372D8, D3DSurface_UnlockRect_hook);  // pacman-nx: Katamari sub_824D0700, N&B sub_8263ED78; GW,KAT,NB (base sub_821C2230)
+BANJO_RENUT_HOOK(sub_82235A70, LockResource_hook);  // pacman-nx: Katamari sub_824DB210, N&B sub_8263D060; HAND D3D_LockResource: reads the VdGlobalDevice record 0x82000500 (0xFFCAE000, as Katamari's an (base sub_821C0C30)
+BANJO_RENUT_HOOK(sub_82235DE0, D3DVertexBuffer_Lock_hook);  // pacman-nx: Katamari sub_824DB760, N&B sub_8263D5E8; GW (base sub_821C0FF8)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824DB870, D3DIndexBuffer_Lock_hook);  // pacman-nx: Katamari sub_824DB870, N&B sub_8263D6F8; not in this game: D3DIndexBuffer_Lock: not linked: this game makes no index buffers
-BANJO_RENUT_HOOK(sub_821C3478, D3D_LockSurface_hook);  // pacman-nx: Katamari sub_824D1918, N&B sub_8263E420; HAND D3D_LockSurface: called by Lock2DSurface sub_821C3550, Lock3DSurface sub_821C35E0 and sub_
-BANJO_RENUT_HOOK(sub_821C3550, D3D_Lock2DSurface_hook);  // pacman-nx: Katamari sub_824D19E0, N&B sub_8263E4E0; GW
-BANJO_RENUT_HOOK(sub_821C35E0, D3D_Lock3DSurface_hook);  // pacman-nx: Katamari sub_824D1A70, N&B sub_8263E570; HAND D3D_Lock3DSurface: 0.88 against N&B's
+BANJO_RENUT_HOOK(sub_82238530, D3D_LockSurface_hook);  // pacman-nx: Katamari sub_824D1918, N&B sub_8263E420; HAND D3D_LockSurface: called by Lock2DSurface sub_821C3550, Lock3DSurface sub_821C35E0 and sub_ (base sub_821C3478)
+BANJO_RENUT_HOOK(sub_82238608, D3D_Lock2DSurface_hook);  // pacman-nx: Katamari sub_824D19E0, N&B sub_8263E4E0; GW (base sub_821C3550)
+BANJO_RENUT_HOOK(sub_82238698, D3D_Lock3DSurface_hook);  // pacman-nx: Katamari sub_824D1A70, N&B sub_8263E570; HAND D3D_Lock3DSurface: 0.88 against N&B's (base sub_821C35E0)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8263E958, D3DArrayTexture_LockRect_hook);  // pacman-nx: N&B sub_8263E958; not in this game: D3DArrayTexture_LockRect: a thunk, not identifiable; the guest's own path stays
-BANJO_RENUT_UNHOOKED_HOOK(unlinked_824D2148, D3DLineTexture_LockRect_hook);  // pacman-nx: Katamari sub_824D2148, N&B sub_8263EA50; not in this game: D3DLineTexture_LockRect: 1.00 only against unrelated 6-instruction thunks
-BANJO_RENUT_HOOK(sub_821C4210, D3DSurface_LockRect_hook);  // pacman-nx: Katamari sub_824D25B8, N&B sub_8263ECF0; GW,NB
-BANJO_RENUT_HOOK(sub_821C4280, D3DVolume_LockBox_hook);  // pacman-nx: Katamari sub_824D2620, N&B sub_8263ED58; KAT,NB
+BANJO_RENUT_HOOK(sub_82238E60, D3DLineTexture_LockRect_hook);  // pacman-nx: Katamari sub_824D2148, N&B sub_8263EA50; not in this game: D3DLineTexture_LockRect: 1.00 only against unrelated 6-instruction thunks (tu3: the update links it; Peggle 2 and NiGHTS place it here)
+BANJO_RENUT_HOOK(sub_822392E8, D3DSurface_LockRect_hook);  // pacman-nx: Katamari sub_824D25B8, N&B sub_8263ECF0; GW,NB (base sub_821C4210)
+BANJO_RENUT_HOOK(sub_82239358, D3DVolume_LockBox_hook);  // pacman-nx: Katamari sub_824D2620, N&B sub_8263ED58; KAT,NB (base sub_821C4280)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8263EA48, D3D_Lock3DSurface_hook);  // pacman-nx: N&B sub_8263EA48; not in this game: D3D_Lock3DSurface_Thunk: as above
-BANJO_RENUT_HOOK(sub_821C0010, D3DResource_AddRef_hook);  // pacman-nx: Katamari sub_824DB550, N&B sub_821D7DB0; GW,NB
-BANJO_RENUT_HOOK(sub_821C0F78, D3DResource_Release_hook);  // pacman-nx: Katamari sub_824DB5C8, N&B sub_821D7C20; GW,NB
-BANJO_RENUT_HOOK(sub_821BFD18, D3DResource_GetType_hook);  // pacman-nx: Katamari sub_824DAF98, N&B sub_821D7630; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C4178, D3DSurface_GetDesc_hook);  // pacman-nx: Katamari sub_824D2520, N&B sub_821D77C0; GW,NB
-BANJO_RENUT_HOOK(sub_821C4238, D3DVolume_GetDesc_hook);  // pacman-nx: Katamari sub_824D25D8, N&B sub_8263ED10; GW,NB
-BANJO_RENUT_HOOK(sub_821C2D90, Get2DSurfaceDesc);  // pacman-nx: Katamari sub_824D1258, N&B sub_821D76C0; GW,NB
-BANJO_RENUT_HOOK(sub_821C3E60, Get2DSurfaceDesc);  // pacman-nx: N&B sub_8263E970; NB
-BANJO_RENUT_HOOK(sub_821C2E90, Get3DSurfaceDesc);  // pacman-nx: Katamari sub_824D1358, N&B sub_8263DEA0; GW,NB
-BANJO_RENUT_HOOK(sub_821C3E68, Get3DSurfaceDesc);  // pacman-nx: N&B sub_8263E978; NB
-BANJO_RENUT_HOOK(sub_821C29C0, LevelLayout_hook);  // pacman-nx: Katamari sub_824D0E90, N&B sub_821D7260; NB
-BANJO_RENUT_HOOK(sub_821C2F90, SubresourceLayout_hook);  // pacman-nx: Katamari sub_824D1458, N&B sub_8263DFA0; NB
-BANJO_RENUT_HOOK(sub_821C3BF8, D3DBaseTexture_GetLevelCount_hook);  // pacman-nx: Katamari sub_824D2080, N&B sub_821BF500; NB
+BANJO_RENUT_HOOK(sub_82234BE0, D3DResource_AddRef_hook);  // pacman-nx: Katamari sub_824DB550, N&B sub_821D7DB0; GW,NB (base sub_821C0010)
+BANJO_RENUT_HOOK(sub_82235880, D3DResource_Release_hook);  // pacman-nx: Katamari sub_824DB5C8, N&B sub_821D7C20; GW,NB (base sub_821C0F78)
+BANJO_RENUT_HOOK(sub_822348E8, D3DResource_GetType_hook);  // pacman-nx: Katamari sub_824DAF98, N&B sub_821D7630; GW,KAT,NB (base sub_821BFD18)
+BANJO_RENUT_HOOK(sub_82239250, D3DSurface_GetDesc_hook);  // pacman-nx: Katamari sub_824D2520, N&B sub_821D77C0; GW,NB (base sub_821C4178)
+BANJO_RENUT_HOOK(sub_82239310, D3DVolume_GetDesc_hook);  // pacman-nx: Katamari sub_824D25D8, N&B sub_8263ED10; GW,NB (base sub_821C4238)
+BANJO_RENUT_HOOK(sub_82237E48, Get2DSurfaceDesc);  // pacman-nx: Katamari sub_824D1258, N&B sub_821D76C0; GW,NB (base sub_821C2D90)
+BANJO_RENUT_HOOK(sub_82238FF0, Get2DSurfaceDesc);  // pacman-nx: N&B sub_8263E970; NB (base sub_821C3E60; tu3: the thunk `b 0x82237E48`)
+BANJO_RENUT_HOOK(sub_82237F48, Get3DSurfaceDesc);  // pacman-nx: Katamari sub_824D1358, N&B sub_8263DEA0; GW,NB (base sub_821C2E90)
+BANJO_RENUT_HOOK(sub_82238F38, Get3DSurfaceDesc);  // pacman-nx: N&B sub_8263E978; NB (base sub_821C3E68; tu3: the thunk `b 0x82237F48`)
+BANJO_RENUT_HOOK(sub_82237A78, LevelLayout_hook);  // pacman-nx: Katamari sub_824D0E90, N&B sub_821D7260; NB (base sub_821C29C0)
+BANJO_RENUT_HOOK(sub_82238048, SubresourceLayout_hook);  // pacman-nx: Katamari sub_824D1458, N&B sub_8263DFA0; NB (base sub_821C2F90)
+BANJO_RENUT_HOOK(sub_82238CB0, D3DBaseTexture_GetLevelCount_hook);  // pacman-nx: Katamari sub_824D2080, N&B sub_821BF500; NB (base sub_821C3BF8)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8263E960, D3DArrayTexture_GetArraySize_hook);  // pacman-nx: N&B sub_8263E960; not in this game: D3DArrayTexture_GetArraySize: 1.00 is GetLevelCount sub_821C3BF8 (same shape)
-BANJO_RENUT_HOOK(sub_821C2218, D3DArrayTexture_UnlockRect_hook);  // pacman-nx: Katamari sub_824D06E8, N&B sub_8263E888; GW,KAT,NB
+BANJO_RENUT_HOOK(sub_822372C0, D3DArrayTexture_UnlockRect_hook);  // pacman-nx: Katamari sub_824D06E8, N&B sub_8263E888; GW,KAT,NB (base sub_821C2218)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824DB8B8, D3DConstantBuffer_Unlock_hook);  // pacman-nx: Katamari sub_824DB8B8, N&B sub_82237D70; not in this game: D3DConstantBuffer_Unlock: not linked
-BANJO_RENUT_HOOK(sub_821C3CF0, D3DTexture_GetSurfaceLevel_hook);  // pacman-nx: Katamari sub_824D2090, N&B sub_821D7E28; NB
-BANJO_RENUT_HOOK(sub_821C3DA8, D3DCubeTexture_GetCubeMapSurface_hook);  // pacman-nx: Katamari sub_824D2160, N&B sub_8263E8A0; NB
-BANJO_RENUT_HOOK(sub_821C3E70, D3DVolumeTexture_GetVolumeLevel_hook);  // pacman-nx: Katamari sub_824D2228, N&B sub_8263E980; NB
-BANJO_RENUT_HOOK(sub_821C00F0, D3DDevice_CreateVertexBuffer_hook);  // pacman-nx: Katamari sub_824DB698, N&B sub_8263D520; GW,NB
+BANJO_RENUT_HOOK(sub_82238DA8, D3DTexture_GetSurfaceLevel_hook);  // pacman-nx: Katamari sub_824D2090, N&B sub_821D7E28; NB (base sub_821C3CF0)
+BANJO_RENUT_HOOK(sub_82238E80, D3DCubeTexture_GetCubeMapSurface_hook);  // pacman-nx: Katamari sub_824D2160, N&B sub_8263E8A0; NB (base sub_821C3DA8)
+BANJO_RENUT_HOOK(sub_82238F40, D3DVolumeTexture_GetVolumeLevel_hook);  // pacman-nx: Katamari sub_824D2228, N&B sub_8263E980; NB (base sub_821C3E70)
+BANJO_RENUT_HOOK(sub_82234CC0, D3DDevice_CreateVertexBuffer_hook);  // pacman-nx: Katamari sub_824DB698, N&B sub_8263D520; GW,NB (base sub_821C00F0)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824DB7C0, D3DDevice_CreateIndexBuffer_hook);  // pacman-nx: Katamari sub_824DB7C0, N&B sub_8263D648; not in this game: D3DDevice_CreateIndexBuffer: not linked (0.68 is CreateVertexBuffer)
-BANJO_RENUT_HOOK(sub_821C3F20, D3DDevice_CreateTexture_hook);  // pacman-nx: Katamari sub_824D22D8, N&B sub_8263EA68; GW,NB
-BANJO_RENUT_HOOK(sub_821C3690, SetTextureHeader_hook);  // pacman-nx: Katamari sub_824D1B18, N&B sub_8225C878; NB
-BANJO_RENUT_HOOK(sub_821C24F8, FindTextureSize_hook);  // pacman-nx: Katamari sub_824D09C8, N&B sub_82255DC0; GW,NB
-BANJO_RENUT_HOOK(sub_821C2350, GetMaxMipLevels_hook);  // pacman-nx: Katamari sub_824D0820, N&B sub_8263DC20; GW,NB
-BANJO_RENUT_HOOK(sub_821C20E0, GetTextureDimensions_hook);  // pacman-nx: Katamari sub_824D0650, N&B sub_821D7010; GW,NB
-BANJO_RENUT_HOOK(sub_821C2178, GetGpuTextureDimensions_hook);  // pacman-nx: N&B sub_8263DCA8; GW,NB
-BANJO_RENUT_HOOK(sub_821C22B8, BlockSizeOfGpuFormat_hook);  // pacman-nx: Katamari sub_824D0788, N&B sub_821D70A8; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C23D8, AlignTextureDimensions_hook);  // pacman-nx: Katamari sub_824D08A8, N&B sub_821D7140; GW,NB
-BANJO_RENUT_HOOK(sub_821C2868, GetMipTailLevelOffsetCoords_hook);  // pacman-nx: Katamari sub_824D0D38, N&B sub_8263DD48; GW,NB
+BANJO_RENUT_HOOK(sub_82238FF8, D3DDevice_CreateTexture_hook);  // pacman-nx: Katamari sub_824D22D8, N&B sub_8263EA68; GW,NB (base sub_821C3F20)
+BANJO_RENUT_HOOK(sub_82238748, SetTextureHeader_hook);  // pacman-nx: Katamari sub_824D1B18, N&B sub_8225C878; NB (base sub_821C3690)
+BANJO_RENUT_HOOK(sub_822375A0, FindTextureSize_hook);  // pacman-nx: Katamari sub_824D09C8, N&B sub_82255DC0; GW,NB (base sub_821C24F8)
+BANJO_RENUT_HOOK(sub_822373F8, GetMaxMipLevels_hook);  // pacman-nx: Katamari sub_824D0820, N&B sub_8263DC20; GW,NB (base sub_821C2350)
+BANJO_RENUT_HOOK(sub_82237188, GetTextureDimensions_hook);  // pacman-nx: Katamari sub_824D0650, N&B sub_821D7010; GW,NB (base sub_821C20E0)
+BANJO_RENUT_HOOK(sub_82237220, GetGpuTextureDimensions_hook);  // pacman-nx: N&B sub_8263DCA8; GW,NB (base sub_821C2178)
+BANJO_RENUT_HOOK(sub_82237360, BlockSizeOfGpuFormat_hook);  // pacman-nx: Katamari sub_824D0788, N&B sub_821D70A8; GW,KAT,NB (base sub_821C22B8)
+BANJO_RENUT_HOOK(sub_82237480, AlignTextureDimensions_hook);  // pacman-nx: Katamari sub_824D08A8, N&B sub_821D7140; GW,NB (base sub_821C23D8)
+BANJO_RENUT_HOOK(sub_82237920, GetMipTailLevelOffsetCoords_hook);  // pacman-nx: Katamari sub_824D0D38, N&B sub_8263DD48; GW,NB (base sub_821C2868)

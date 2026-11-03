@@ -79,7 +79,7 @@ constexpr uint64_t TouchBits(u32 offset, u32 size) {
 // (word 3, bit 31 - n) is its chunks, its texture word and the stream words; any other tag the render state's chunks: the
 // bool and integer constants and the register packets (0x2780-0x2A7F) and the private render state (0x2E00-0x2EFF; on
 // title update 3 0x2E04-0x2F07, its CDevice 4 bytes longer from 0x2AC0 and 8 from 0x2E30).
-constexpr uint64_t kStateTagChunks = TouchBits(0x2780, 0x300) | TouchBits(0x2EA8, 0x108);  // katamari-nx: 0x2E00->0x2DF4 (pacman-nx: 0x2DF4->0x2EA8)
+constexpr uint64_t kStateTagChunks = TouchBits(0x2780, 0x300) | TouchBits(12160, 12456 - 12160);  // katamari-nx: 0x2E00->0x2DF4 (pacman-nx: 0x2DF4->0x2EA8) (tu3: 0x2EA8->0x2FA0)
 struct FetchTagTable {
   uint64_t chunks[32];
 };
@@ -289,36 +289,36 @@ constexpr u32 ModeControl = 0x2948;
 constexpr u32 BlendControl1 = 0x2958;
 constexpr u32 BlendControl2 = 0x295C;
 constexpr u32 BlendControl3 = 0x2960;
-constexpr u32 FenceCompletion = 0x2A90;    // -> the completed-fence word
-constexpr u32 FenceTag = 0x2A9C;           // the current fence
-constexpr u32 CommandBufferTagMask = 0x2AA0;  // Common bits a recorded buffer tracks
-constexpr u32 TilePredication = 0x2AB4;    // SetPredication / SetCommandBufferPredication args
-constexpr u32 RunPredication = 0x2AB8;
-constexpr u32 Flags = 0x2ABC;              // bytes 0x2ABC-0x2ABF, see below
-constexpr u32 Flags1 = 0x2ABD;
-constexpr u32 Flags2 = 0x2ABE;
-constexpr u32 Flags3 = 0x2ABF;
+constexpr u32 FenceCompletion = 0x2B10;    // -> the completed-fence word
+constexpr u32 FenceTag = 0x2B1C;           // the current fence
+constexpr u32 CommandBufferTagMask = 0x2B20;  // Common bits a recorded buffer tracks
+constexpr u32 TilePredication = 0x2B34;    // SetPredication / SetCommandBufferPredication args
+constexpr u32 RunPredication = 0x2B38;
+constexpr u32 Flags = 0x2B3C;              // bytes 0x2ABC-0x2ABF, see below
+constexpr u32 Flags1 = 0x2B3D;
+constexpr u32 Flags2 = 0x2B3E;
+constexpr u32 Flags3 = 0x2B3F;
 // TU3: the fields from 0x2E30 to 0x3390 are 8 bytes further on.
-constexpr u32 ScissorRect = 0x3234;        // SetScissorRect's RECT (katamari-nx: 0x318C->0x317C) (pacman-nx: 0x317C->0x3234)
-constexpr u32 IndexBuffer = 0x3144;  // katamari-nx: 0x309C->0x308C (pacman-nx: 0x308C->0x3144)
-constexpr u32 RenderTargets = 0x3148;      // [4] (katamari-nx: 0x30A0->0x3090) (pacman-nx: 0x3090->0x3148)
-constexpr u32 DepthStencil = 0x3158;  // katamari-nx: 0x30B0->0x30A0 (pacman-nx: 0x30A0->0x3158)
-constexpr u32 StreamSources = 0x315C;      // [16] (katamari-nx: 0x30B4->0x30A4) (pacman-nx: 0x30A4->0x315C)
-constexpr u32 StreamStrides = 0x31A0;      // u8[16], stride / 4 (katamari-nx: 0x30F8->0x30E8) (pacman-nx: 0x30E8->0x31A0)
-constexpr u32 Textures = 0x31B0;           // [26] (katamari-nx: 0x3108->0x30F8) (pacman-nx: 0x30F8->0x31B0)
-constexpr u32 Predication = 0x3254;        // tile predication of the next draws, ~0 none (katamari-nx: 0x31AC->0x319C) (pacman-nx: 0x319C->0x3254)
-constexpr u32 RunPredicationState = 0x3258;  // katamari-nx: 0x31B0->0x31A0 (pacman-nx: 0x31A0->0x3258)
-constexpr u32 PredicationSet = 0x325C;     // 1 while SetPredication's mask is non-zero (katamari-nx: 0x31B4->0x31A4) (pacman-nx: 0x31A4->0x325C)
-constexpr u32 TilingSurfaces = 0x3268;     // the 4 targets and depth BeginTiling bound (katamari-nx: 0x31C0->0x31B0) (pacman-nx: 0x31B0->0x3268)
-constexpr u32 TileCount = 0x327C;  // katamari-nx: 0x31D4->0x31C4 (pacman-nx: 0x31C4->0x327C)
-constexpr u32 TileRects = 0x3280;          // D3DRECT[TileCount] (katamari-nx: 0x31D8->0x31C8) (pacman-nx: 0x31C8->0x3280)
-constexpr u32 TileOrigins = 0x3370;        // per tile, x & ~31, y & ~31 (katamari-nx: 0x32C8->0x32B8) (pacman-nx: 0x32B8->0x3370)
-constexpr u32 TilingExtent = 0x342C;       // widest and tallest tile edge (katamari-nx: 0x3384->0x3374) (pacman-nx: 0x3374->0x342C)
-constexpr u32 CommandBuffer = 0x35A0;      // the D3DCommandBuffer being recorded (katamari-nx: 0x34CC->0x34B4) (pacman-nx: 0x34B4->0x35A0)
-constexpr u32 SideBuffer = 0x422C;  // katamari-nx: 0x4158->0x4140 (pacman-nx: 0x4140->0x422C)
-constexpr u32 AutoDepthStencil = 0x3ABC;   // InitializePresentationParameters' surfaces (katamari-nx: 0x39E8->0x39D0) (pacman-nx: 0x39D0->0x3ABC)
-constexpr u32 AutoFrontBuffer = 0x3AC0;  // katamari-nx: 0x39EC->0x39D4 (pacman-nx: 0x39D4->0x3AC0)
-constexpr u32 AutoBackBuffer = 0x3AC4;  // katamari-nx: 0x39F0->0x39D8 (pacman-nx: 0x39D8->0x3AC4)
+constexpr u32 ScissorRect = 0x32FC;        // SetScissorRect's RECT (katamari-nx: 0x318C->0x317C) (pacman-nx: 0x317C->0x3234) (tu3: 0x3234->0x32FC)
+constexpr u32 IndexBuffer = 0x320C;  // katamari-nx: 0x309C->0x308C (pacman-nx: 0x308C->0x3144) (tu3: 0x3144->0x320C)
+constexpr u32 RenderTargets = 0x3210;      // [4] (katamari-nx: 0x30A0->0x3090) (pacman-nx: 0x3090->0x3148) (tu3: 0x3148->0x3210)
+constexpr u32 DepthStencil = 0x3220;  // katamari-nx: 0x30B0->0x30A0 (pacman-nx: 0x30A0->0x3158) (tu3: 0x3158->0x3220)
+constexpr u32 StreamSources = 0x3224;      // [16] (katamari-nx: 0x30B4->0x30A4) (pacman-nx: 0x30A4->0x315C) (tu3: 0x315C->0x3224)
+constexpr u32 StreamStrides = 0x3268;      // u8[16], stride / 4 (katamari-nx: 0x30F8->0x30E8) (pacman-nx: 0x30E8->0x31A0) (tu3: 0x31A0->0x3268)
+constexpr u32 Textures = 0x3278;           // [26] (katamari-nx: 0x3108->0x30F8) (pacman-nx: 0x30F8->0x31B0) (tu3: 0x31B0->0x3278)
+constexpr u32 Predication = 0x331C;        // tile predication of the next draws, ~0 none (katamari-nx: 0x31AC->0x319C) (pacman-nx: 0x319C->0x3254) (tu3: 0x3254->0x331C)
+constexpr u32 RunPredicationState = 0x3320;  // katamari-nx: 0x31B0->0x31A0 (pacman-nx: 0x31A0->0x3258) (tu3: 0x3258->0x3320)
+constexpr u32 PredicationSet = 0x3324;     // 1 while SetPredication's mask is non-zero (katamari-nx: 0x31B4->0x31A4) (pacman-nx: 0x31A4->0x325C) (tu3: 0x325C->0x3324)
+constexpr u32 TilingSurfaces = 0x3330;     // the 4 targets and depth BeginTiling bound (katamari-nx: 0x31C0->0x31B0) (pacman-nx: 0x31B0->0x3268) (tu3: 0x3268->0x3330)
+constexpr u32 TileCount = 0x3344;  // katamari-nx: 0x31D4->0x31C4 (pacman-nx: 0x31C4->0x327C) (tu3: 0x327C->0x3344)
+constexpr u32 TileRects = 0x3348;          // D3DRECT[TileCount] (katamari-nx: 0x31D8->0x31C8) (pacman-nx: 0x31C8->0x3280) (tu3: 0x3280->0x3348)
+constexpr u32 TileOrigins = 0x3438;        // per tile, x & ~31, y & ~31 (katamari-nx: 0x32C8->0x32B8) (pacman-nx: 0x32B8->0x3370) (tu3: 0x3370->0x3438)
+constexpr u32 TilingExtent = 0x34F4;       // widest and tallest tile edge (katamari-nx: 0x3384->0x3374) (pacman-nx: 0x3374->0x342C) (tu3: 0x342C->0x34F4)
+constexpr u32 CommandBuffer = 0x3660;      // the D3DCommandBuffer being recorded (katamari-nx: 0x34CC->0x34B4) (pacman-nx: 0x34B4->0x35A0) (tu3: 0x35A0->0x3660)
+constexpr u32 SideBuffer = 0x42F0;  // katamari-nx: 0x4158->0x4140 (pacman-nx: 0x4140->0x422C) (tu3: 0x422C->0x42F0)
+constexpr u32 AutoDepthStencil = 0x3B7C;   // InitializePresentationParameters' surfaces (katamari-nx: 0x39E8->0x39D0) (pacman-nx: 0x39D0->0x3ABC) (tu3: 0x3ABC->0x3B7C)
+constexpr u32 AutoFrontBuffer = 0x3B80;  // katamari-nx: 0x39EC->0x39D4 (pacman-nx: 0x39D4->0x3AC0) (tu3: 0x3AC0->0x3B80)
+constexpr u32 AutoBackBuffer = 0x3B84;  // katamari-nx: 0x39F0->0x39D8 (pacman-nx: 0x39D8->0x3AC4) (tu3: 0x3AC4->0x3B84)
 }  // namespace off
 
 // Flags (0x2ABC) bits: 0x01 the draws that follow run in each tile's pass,

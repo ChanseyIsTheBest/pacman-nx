@@ -275,6 +275,17 @@ public:
                 paths.game_data_root = extracted;
             }
         }
+        // pacman-nx (2026-11-03, title update 3): the update's files, in a folder of their own as on a console. The game
+        // opens a file from its DLC mounts (PackageRoot0-9), then UPDATE:\, then game:\ (sub_821FDF58). The runtime applies
+        // game_root/default.xexp by itself (UserModule).
+        if (paths.update_data_root.empty()) {
+            const auto folder = rex::filesystem::GetExecutableFolder();
+            std::error_code ec;
+            const auto update = folder / "update";
+            if (!folder.empty() && std::filesystem::is_directory(update, ec)) {
+                paths.update_data_root = update;
+            }
+        }
         renut::dlc::SetUserDataRoot(paths.user_data_root);  // the folder the DLC installer checks for installed ones
     }
 

@@ -77,7 +77,7 @@ using namespace renut::gpu;
 // Kernel exports the device code uses.
 // katamari-nx: Beautiful Katamari's GetCurrentThreadId is sub_824C1C10 (`lwz r11,256(r13); lwz r3,332(r11); blr`,
 // N&B's rex_GetCurrentThreadId 0x8220F1E0 byte for byte).
-REX_IMPORT(__imp__sub_821B4660, GuestGetCurrentThreadId, u32());
+REX_IMPORT(__imp__sub_82228140, GuestGetCurrentThreadId, u32());  // base sub_821B4660
 REX_IMPORT(__imp__RtlInitializeCriticalSection, RtlInitializeCriticalSection, void(u32));
 REX_IMPORT(__imp__KeQueryPerformanceFrequency, KeQueryPerformanceFrequency, u32());
 REX_IMPORT(__imp__KeGetCurrentProcessType, KeGetCurrentProcessType, u32());
@@ -99,34 +99,36 @@ constexpr u32 kRingDataSize = 1u << 20;
 // offsets into the device allocation.
 // Byte whose 0x80 bit marks a device without GPU hardware (its device-type-2
 // path sets it); D3D's code skips hardware work for it.
-constexpr u32 kDeviceOffsetFlags = 10940;
+constexpr u32 kDeviceOffsetFlags = 11068;
 constexpr u8 kDeviceFlagNoHardware = 0x80;
 // Byte whose 0x2 bit makes CDevice::SetFence (0x82246420) write each fence's
 // completion value itself instead of waiting for the GPU to. The title device
 // runs without it once created: its fences complete on the render thread.
-constexpr u32 kDeviceOffsetFlags2 = 10941;
+constexpr u32 kDeviceOffsetFlags2 = 11069;
 constexpr u8 kDeviceFlagImmediateFences = 0x02;
 // Pointer to the completed-fence word IsFencePending / BlockOnFence read.
-constexpr u32 kDeviceOffsetFenceCompletion = 10896;
+constexpr u32 kDeviceOffsetFenceCompletion = 11024;
+// pacman-nx (title update 3, from nights-nx and peggle2-nx): XDK 21250's 32-byte block (InitializeHardwareDevice).
+constexpr u32 kDeviceOffsetHardwareBlock = 11028;
 // Nonzero while a KickOff is in progress (BlockOnFence does not kick then).
-constexpr u32 kDeviceOffsetInKickOff = 13408;  // katamari-nx: 13232->13216 (pacman-nx: 13216->13408)
+constexpr u32 kDeviceOffsetInKickOff = 13600;  // katamari-nx: 13232->13216 (pacman-nx: 13216->13408) (tu3: 13408->13600)
 // Side buffer (0x12C0 bytes) every device gets.
-constexpr u32 kDeviceOffsetSideBuffer = 16940;  // katamari-nx: 16728->16704 (pacman-nx: 16704->16940)
+constexpr u32 kDeviceOffsetSideBuffer = 17136;  // katamari-nx: 16728->16704 (pacman-nx: 16704->16940) (tu3: 16940->17136)
 constexpr u32 kSideBufferSize = 0x12C0;
 // Set to -1 by the device-type-2 path.
-constexpr u32 kDeviceOffsetsMinusOne[] = {21772, 21776, 15148};  // katamari-nx: 21560->21532, 21564->21536, 14936->14912 (pacman-nx: 21532->21772, 21536->21776, 14912->15148)
+constexpr u32 kDeviceOffsetsMinusOne[] = {21968, 21972, 15340};  // katamari-nx: 21560->21532, 21564->21536, 14936->14912 (pacman-nx: 21532->21772, 21536->21776, 14912->15148) (tu3: 21772->21968, 21776->21972, 15148->15340)
 constexpr u32 kDeviceTypeNoHardware = 2;
 // Copied from the global qword at 0x82DA3478 into every device.
-constexpr u32 kDeviceOffsetGlobalQword = 10880;
-constexpr u32 kGlobalQwordVa = 0x8246A868;  // pacman-nx: the build qword 2.0.11164.0;  // katamari-nx: 0x82DA3478->0x82AD93F8
+constexpr u32 kDeviceOffsetGlobalQword = 11008;
+constexpr u32 kGlobalQwordVa = 0x824F52D0;  // pacman-nx: the build qword 2.0.11164.0;  // katamari-nx: 0x82DA3478->0x82AD93F8
 // Hardware-path fields: two critical sections, QueryPerformanceFrequency and
 // its reciprocal as floats, and 41 words set to -1.
-constexpr u32 kDeviceOffsetCriticalSection0 = 15156;  // katamari-nx: 14944->14920 (pacman-nx: 14920->15156)
-constexpr u32 kDeviceOffsetCriticalSection1 = 15184;  // katamari-nx: 14972->14948 (pacman-nx: 14948->15184)
-constexpr u32 kDeviceOffsetPerfFrequency = 21800;  // katamari-nx: 21588->21560 (pacman-nx: 21560->21800)
-constexpr u32 kDeviceOffsetTitleMinusOne = 23592;  // katamari-nx: 23380->21672 (pacman-nx: 21672->23592)
+constexpr u32 kDeviceOffsetCriticalSection0 = 15348;  // katamari-nx: 14944->14920 (pacman-nx: 14920->15156) (tu3: 15156->15348)
+constexpr u32 kDeviceOffsetCriticalSection1 = 15376;  // katamari-nx: 14972->14948 (pacman-nx: 14948->15184) (tu3: 15184->15376)
+constexpr u32 kDeviceOffsetPerfFrequency = 21996;  // katamari-nx: 21588->21560 (pacman-nx: 21560->21800) (tu3: 21800->21996)
+constexpr u32 kDeviceOffsetTitleMinusOne = 23792;  // katamari-nx: 23380->21672 (pacman-nx: 21672->23592) (tu3: 23592->23792)
 // Import slot holding the address of the kernel's VdGlobalDevice variable.
-constexpr u32 kVdGlobalDeviceImportSlot = 0x82000500;  // pacman-nx: loaded value 0xFFCAE000, as Katamari's;  // katamari-nx: 0x820007F8->0x82000750
+constexpr u32 kVdGlobalDeviceImportSlot = 0x82000544;  // pacman-nx: loaded value 0xFFCAE000, as Katamari's;  // katamari-nx: 0x820007F8->0x82000750
 
 constexpr u32 kE_OUTOFMEMORY = 0x8007000Eu;
 
@@ -180,7 +182,7 @@ bool FencePending(const u8 *bytes, u32 fence) {
 // D3D::XenonGpu_Initialize: the register image's power-on values, everything
 // dirty. (Its register writes go into the ring.)
 void XenonGpuInitialize(native::Device d) {
-  d.SetQ(0x2EE0, 0x00000000FFFFFFFFull);  // katamari-nx: 0x2E38->0x2E28 (pacman-nx: 0x2E28->0x2EE0)
+  d.SetQ(0x2FD8, 0x00000000FFFFFFFFull);  // katamari-nx: 0x2E38->0x2E28 (pacman-nx: 0x2E28->0x2EE0) (tu3: 0x2EE0->0x2FD8)
   for (u32 i = 0; i < 26; ++i)  // texture fetch constants: type 0
     d.SetW(native::off::TextureFetch + i * 24, d.W(native::off::TextureFetch + i * 24) & ~3u);
   for (u32 i = 0; i < 18; ++i) {  // vertex fetch constants: type 1
@@ -204,37 +206,37 @@ void XenonGpuInitialize(native::Device d) {
   d.SetW(0x2A48, 2);
   for (u32 word = 0; word < 5; ++word)
     d.SetPending(word, ~u64(0));
-  d.SetW(0x2AA4, 0xE);
+  d.SetW(0x2B24, 0xE);
 }
 
 // D3D::InitializeApiState (0x82641BC8).
 void InitializeApiState(native::Device d) {
-  const u32 present_interval = d.W(0x35F0);  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0)
-  const u32 behavior_flags2 = d.W(0x5E80);  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80)
+  const u32 present_interval = d.W(0x36B0);  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0) (tu3: 0x35F0->0x36B0)
+  const u32 behavior_flags2 = d.W(0x5F48);  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80) (tu3: 0x5E80->0x5F48)
   native::InitializeStateTables(d);
-  d.SetW(0x3050, 5);  // katamari-nx: 0x2FA8->0x2F98 (pacman-nx: 0x2F98->0x3050)
-  d.SetW(0x3054, 1);  // katamari-nx: 0x2FAC->0x2F9C (pacman-nx: 0x2F9C->0x3054)
+  d.SetW(0x3118, 5);  // katamari-nx: 0x2FA8->0x2F98 (pacman-nx: 0x2F98->0x3050) (tu3: 0x3050->0x3118)
+  d.SetW(0x311C, 1);  // katamari-nx: 0x2FAC->0x2F9C (pacman-nx: 0x2F9C->0x3054) (tu3: 0x3054->0x311C)
   native::SetScreenExtentQueryMode(d, 2);  // D3DSEQM_PRECLIP
-  d.SetW(0x3140, 2);  // katamari-nx: 0x3098->0x3088 (pacman-nx: 0x3088->0x3140)
-  d.SetW(0x3088, 0x2A23B9);  // katamari-nx: 0x2FE0->0x2FD0 (pacman-nx: 0x2FD0->0x3088)
-  d.SetH(0x3084, 0);  // katamari-nx: 0x2FDC->0x2FCC (pacman-nx: 0x2FCC->0x3084)
-  d.SetH(0x3086, 0);  // katamari-nx: 0x2FDE->0x2FCE (pacman-nx: 0x2FCE->0x3086)
-  d.SetB(0x308C, 0);  // katamari-nx: 0x2FE4->0x2FD4 (pacman-nx: 0x2FD4->0x308C)
-  d.SetB(0x308D, 0);  // katamari-nx: 0x2FE5->0x2FD5 (pacman-nx: 0x2FD5->0x308D)
-  d.SetB(0x308E, 0);  // katamari-nx: 0x2FE6->0x2FD6 (pacman-nx: 0x2FD6->0x308E)
-  d.SetW(0x3094, ~0u);  // katamari-nx: 0x2FEC->0x2FDC (pacman-nx: 0x2FDC->0x3094)
+  d.SetW(0x3208, 2);  // katamari-nx: 0x3098->0x3088 (pacman-nx: 0x3088->0x3140) (tu3: 0x3140->0x3208)
+  d.SetW(0x3150, 0x2A23B9);  // katamari-nx: 0x2FE0->0x2FD0 (pacman-nx: 0x2FD0->0x3088) (tu3: 0x3088->0x3150)
+  d.SetH(0x314C, 0);  // katamari-nx: 0x2FDC->0x2FCC (pacman-nx: 0x2FCC->0x3084) (tu3: 0x3084->0x314C)
+  d.SetH(0x314E, 0);  // katamari-nx: 0x2FDE->0x2FCE (pacman-nx: 0x2FCE->0x3086) (tu3: 0x3086->0x314E)
+  d.SetB(0x3154, 0);  // katamari-nx: 0x2FE4->0x2FD4 (pacman-nx: 0x2FD4->0x308C) (tu3: 0x308C->0x3154)
+  d.SetB(0x3155, 0);  // katamari-nx: 0x2FE5->0x2FD5 (pacman-nx: 0x2FD5->0x308D) (tu3: 0x308D->0x3155)
+  d.SetB(0x3156, 0);  // katamari-nx: 0x2FE6->0x2FD6 (pacman-nx: 0x2FD6->0x308E) (tu3: 0x308E->0x3156)
+  d.SetW(0x315C, ~0u);  // katamari-nx: 0x2FEC->0x2FDC (pacman-nx: 0x2FDC->0x3094) (tu3: 0x3094->0x315C)
   // Three zero bytes; N&B leaves the fourth from its stack.
-  d.SetW(0x3098, 0);  // katamari-nx: 0x2FF0->0x2FE0 (pacman-nx: 0x2FE0->0x3098)
-  d.SetW(0x3090, 0x00FF0000);  // katamari-nx: 0x2FE8->0x2FD8 (pacman-nx: 0x2FD8->0x3090)
-  d.SetW(0x3068, 1);  // katamari-nx: 0x2FC0->0x2FB0 (pacman-nx: 0x2FB0->0x3068)
-  d.SetW(0x306C, 0);  // katamari-nx: 0x2FC4->0x2FB4 (pacman-nx: 0x2FB4->0x306C)
-  d.SetW(0x3080, 0);  // katamari-nx: 0x2FD8->0x2FC8 (pacman-nx: 0x2FC8->0x3080)
+  d.SetW(0x3160, 0);  // katamari-nx: 0x2FF0->0x2FE0 (pacman-nx: 0x2FE0->0x3098) (tu3: 0x3098->0x3160)
+  d.SetW(0x3158, 0x00FF0000);  // katamari-nx: 0x2FE8->0x2FD8 (pacman-nx: 0x2FD8->0x3090) (tu3: 0x3090->0x3158)
+  d.SetW(0x3130, 1);  // katamari-nx: 0x2FC0->0x2FB0 (pacman-nx: 0x2FB0->0x3068) (tu3: 0x3068->0x3130)
+  d.SetW(0x3134, 0);  // katamari-nx: 0x2FC4->0x2FB4 (pacman-nx: 0x2FB4->0x306C) (tu3: 0x306C->0x3134)
+  d.SetW(0x3148, 0);  // katamari-nx: 0x2FD8->0x2FC8 (pacman-nx: 0x2FC8->0x3080) (tu3: 0x3080->0x3148)
   // The default vertex declaration is the device's own, at +0x2FA8.
-  d.SetW(d3d::kDeviceOffsetVertexDeclaration, d.va + 0x3050);  // katamari-nx: 0x2FA8->0x2F98 (pacman-nx: 0x2F98->0x3050)
+  d.SetW(d3d::kDeviceOffsetVertexDeclaration, d.va + 0x3118);  // katamari-nx: 0x2FA8->0x2F98 (pacman-nx: 0x2F98->0x3050) (tu3: 0x3050->0x3118)
   d.Dirty(2, 0x80000);
-  d.SetW(0x35F0, present_interval);  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0)
-  const u32 flags2 = d.W(0x5E80);  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80)
-  d.SetW(0x5E80, (behavior_flags2 & 1) ? (flags2 | 1) : (flags2 & ~1u));  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80)
+  d.SetW(0x36B0, present_interval);  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0) (tu3: 0x35F0->0x36B0)
+  const u32 flags2 = d.W(0x5F48);  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80) (tu3: 0x5E80->0x5F48)
+  d.SetW(0x5F48, (behavior_flags2 & 1) ? (flags2 | 1) : (flags2 & ~1u));  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80) (tu3: 0x5E80->0x5F48)
   d.SetW(native::off::PredicationSet, 0);
   native::UpdateTilePredicated(d);
   d.SetW(native::off::Predication, ~0u);
@@ -254,7 +256,7 @@ void SetScalerParameters(native::Device d, const be_u32 *scaler) {
     copy[i] = scaler[i];
   copy[6] = copy[10] = scaler[6] ? 3 : 0;
   for (u32 i = 0; i < 14; ++i)
-    d.SetW(0x3670 + i * 4, copy[i]);  // katamari-nx: 0x359C->0x3584 (pacman-nx: 0x3584->0x3670)
+    d.SetW(0x3730 + i * 4, copy[i]);  // katamari-nx: 0x359C->0x3584 (pacman-nx: 0x3584->0x3670) (tu3: 0x3670->0x3730)
   d.SetB(native::off::Flags2, d.B(native::off::Flags2) | 0x10);
 }
 
@@ -287,10 +289,10 @@ bool InitializePresentationParameters(native::Device d, u32 parameters_va) {
 
   rex::system::X_VIDEO_MODE mode{};
   rex::kernel::xboxkrnl::VdQueryVideoMode(&mode);
-  d.SetW(0x54FC, u32(mode.display_width));  // katamari-nx: 0x5428->0x540C (pacman-nx: 0x540C->0x54FC)
-  d.SetW(0x5504, u32(mode.display_width));  // katamari-nx: 0x5430->0x5414 (pacman-nx: 0x5414->0x5504)
-  d.SetW(0x5508, u32(i64(float(mode.refresh_rate) + 0.5f)));  // katamari-nx: 0x5434->0x5418 (pacman-nx: 0x5418->0x5508)
-  d.SetW(0x5500, u32(mode.display_height));  // katamari-nx: 0x542C->0x5410 (pacman-nx: 0x5410->0x5500)
+  d.SetW(0x55C0, u32(mode.display_width));  // katamari-nx: 0x5428->0x540C (pacman-nx: 0x540C->0x54FC) (tu3: 0x54FC->0x55C0)
+  d.SetW(0x55C8, u32(mode.display_width));  // katamari-nx: 0x5430->0x5414 (pacman-nx: 0x5414->0x5504) (tu3: 0x5504->0x55C8)
+  d.SetW(0x55CC, u32(i64(float(mode.refresh_rate) + 0.5f)));  // katamari-nx: 0x5434->0x5418 (pacman-nx: 0x5418->0x5508) (tu3: 0x5508->0x55CC)
+  d.SetW(0x55C4, u32(mode.display_height));  // katamari-nx: 0x542C->0x5410 (pacman-nx: 0x5410->0x5500) (tu3: 0x5500->0x55C4)
 
   // pacman-nx: this game asks for the automatic front buffer (N&B's parameters disable it): D3D's Present resolves the back
   // buffer into it and swaps it. As the game's own InitializePresentationParameters, sub_821CF638 (`stw r3,15040(r29)`).
@@ -315,9 +317,9 @@ bool InitializePresentationParameters(native::Device d, u32 parameters_va) {
     native::SetDepthStencilSurface(d, surface);
   }
   for (u32 i = 0; i < 0x7C / 4; ++i)
-    d.SetW(0x35BC + i * 4, p[i]);  // katamari-nx: 0x34E8->0x34D0 (pacman-nx: 0x34D0->0x35BC)
+    d.SetW(0x367C + i * 4, p[i]);  // katamari-nx: 0x34E8->0x34D0 (pacman-nx: 0x34D0->0x35BC) (tu3: 0x35BC->0x367C)
   if ((front_format & 0x3FFC0000u) != 0x24900000u)
-    d.SetW(0x35FC, (front_format & 0x3F) | 0x28280100u);  // katamari-nx: 0x3528->0x3510 (pacman-nx: 0x3510->0x35FC)
+    d.SetW(0x36BC, (front_format & 0x3F) | 0x28280100u);  // katamari-nx: 0x3528->0x3510 (pacman-nx: 0x3510->0x35FC) (tu3: 0x35FC->0x36BC)
   SetScalerParameters(d, p + 0x60 / 4);
   // The default gamma: linear, as a piecewise-linear ramp for the front
   // buffer formats 7 and 0x36 (0x32 counts as 6).
@@ -344,7 +346,7 @@ bool InitializePresentationParameters(native::Device d, u32 parameters_va) {
     }
     SetGammaRamp(d, ramp);
   }
-  d.SetW(0x4218, ~0u);  // katamari-nx: 0x4144->0x412C (pacman-nx: 0x412C->0x4218)
+  d.SetW(0x42DC, ~0u);  // katamari-nx: 0x4144->0x412C (pacman-nx: 0x412C->0x4218) (tu3: 0x4218->0x42DC)
   return true;
 }
 
@@ -354,7 +356,7 @@ bool InitializePresentationParameters(native::Device d, u32 parameters_va) {
 bool InitializeTitleDevice(native::Device d, u32 present_parameters) {
   RtlInitializeCriticalSection(d.va + kDeviceOffsetCriticalSection0);
   RtlInitializeCriticalSection(d.va + kDeviceOffsetCriticalSection1);
-  d.SetW(16924, 0);  // katamari-nx: 16712->16688 (pacman-nx: 16688->16924)
+  d.SetW(17120, 0);  // katamari-nx: 16712->16688 (pacman-nx: 16688->16924) (tu3: 16924->17120)
 
   // D3D reads the device through the kernel's VdGlobalDevice from any thread
   // (resource locks, blockers).
@@ -398,7 +400,10 @@ u32 Direct3D_CreateDevice_hook(u32 /*adapter*/, u32 device_type, u32 /*unused*/,
   // guest memory (64 KiB aligned, so each part keeps its 0x80 alignment).
   static_assert(d3d::kDeviceAllocSize % d3d::kDeviceAlignment == 0);
   constexpr u32 kFenceOffset = d3d::kDeviceAllocSize + ((kSideBufferSize + 0x7F) & ~0x7Fu);
-  constexpr u32 kBlockSize = kFenceOffset + 0x80;
+  // pacman-nx (title update 3): this XDK's InitializeHardwareDevice also gives the device a 32-byte block at +11028 (read by
+  // its interrupt and fence paths); it follows the fence word here, as in nights-nx and peggle2-nx.
+  constexpr u32 kHardwareBlockOffset = kFenceOffset + 0x80;
+  constexpr u32 kBlockSize = kHardwareBlockOffset + 0x80;
   u32 block_va = 0;
   {
     std::lock_guard lock(g_free_devices_mutex);
@@ -435,13 +440,14 @@ u32 Direct3D_CreateDevice_hook(u32 /*adapter*/, u32 device_type, u32 /*unused*/,
   WriteU32(bytes, d3d::kDeviceOffsetIsTitleProcess, 0);  // KeGetCurrentProcessType() != 2
   WriteU32(bytes, kDeviceOffsetSideBuffer, side_buffer_va);
   WriteU32(bytes, kDeviceOffsetFenceCompletion, fence_va);
+  WriteU32(bytes, kDeviceOffsetHardwareBlock, device_va + kHardwareBlockOffset);  // pacman-nx (title update 3)
   if (title_device) {
     // The original's default when no ring configuration is requested.
     if (!(behavior_flags & 0x100) && !(behavior_flags & 0x3F000000))
       behavior_flags |= 0xC000000;
     WriteU32(bytes, d3d::kDeviceOffsetBehaviorFlags, behavior_flags);
-    WriteU32(bytes, 21772, 0xFFFFFFFFu);  // katamari-nx: 21560->21532 (pacman-nx: 21532->21772)
-    WriteU32(bytes, 21776, 0xFFFFFFFFu);  // katamari-nx: 21564->21536 (pacman-nx: 21536->21776)
+    WriteU32(bytes, 21968, 0xFFFFFFFFu);  // katamari-nx: 21560->21532 (pacman-nx: 21532->21772) (tu3: 21772->21968)
+    WriteU32(bytes, 21972, 0xFFFFFFFFu);  // katamari-nx: 21564->21536 (pacman-nx: 21536->21776) (tu3: 21776->21972)
   } else {
     for (u32 offset : kDeviceOffsetsMinusOne)
       WriteU32(bytes, offset, 0xFFFFFFFFu);
@@ -686,14 +692,14 @@ void ConfigureForOnePassZPass(native::Device d, bool flag, u32 tile_count, u32 w
   for (u32 i = 0; i < tile_count; ++i) {
     const u32 x = d.W(native::off::TileOrigins + i * 8);
     const u32 y = d.W(native::off::TileOrigins + i * 8 + 4);
-    d.SetW(0x33E8 + i * 4, (y / tile_height) * tiles_per_row + x / tile_width);  // katamari-nx: 0x3340->0x3330 (pacman-nx: 0x3330->0x33E8)
+    d.SetW(0x34B0 + i * 4, (y / tile_height) * tiles_per_row + x / tile_width);  // katamari-nx: 0x3340->0x3330 (pacman-nx: 0x3330->0x33E8) (tu3: 0x33E8->0x34B0)
   }
-  d.SetW(0x3424, pitch);  // katamari-nx: 0x337C->0x336C (pacman-nx: 0x336C->0x3424)
+  d.SetW(0x34EC, pitch);  // katamari-nx: 0x337C->0x336C (pacman-nx: 0x336C->0x3424) (tu3: 0x3424->0x34EC)
   d.SetW(native::off::SurfaceInfo, native::Insert(d.W(native::off::SurfaceInfo), pitch, 18, 14));
   d.Dirty(2, 0x100);
-  d.SetW(0x3428, ((unit + width - 1) / unit) * unit);  // katamari-nx: 0x3380->0x3370 (pacman-nx: 0x3370->0x3428)
+  d.SetW(0x34F0, ((unit + width - 1) / unit) * unit);  // katamari-nx: 0x3380->0x3370 (pacman-nx: 0x3370->0x3428) (tu3: 0x3428->0x34F0)
   u64 predicated = d.Q(native::off::PredicatedPending2);
-  if ((d.B(native::off::Flags3) & 0x20) || (d.W(0x2EFC) & 0xE0000) != 0x40000)  // katamari-nx: 0x2E54->0x2E44 (pacman-nx: 0x2E44->0x2EFC)
+  if ((d.B(native::off::Flags3) & 0x20) || (d.W(0x2FFC) & 0xE0000) != 0x40000)  // katamari-nx: 0x2E54->0x2E44 (pacman-nx: 0x2E44->0x2EFC) (tu3: 0x2EFC->0x2FFC)
     predicated |= 0x100;
   else
     predicated &= ~u64(0x100);
@@ -724,11 +730,11 @@ u32 D3DDevice_BeginCommandBuffer_hook(u32 device_va, u32 command_buffer, u32 fla
   bw(kBufferFlags) = u32(bw(kBufferFlags)) & ~0x70u;
   for (u32 offset : {0x7Cu, 0x80u, 0x84u, 0x70u, 0x90u, 0x74u, 0x78u})
     bw(offset) = 0u;
-  d.SetW(0x3B24, 8);  // katamari-nx: 0x3A50->0x3A38 (pacman-nx: 0x3A38->0x3B24)
+  d.SetW(0x3BE4, 8);  // katamari-nx: 0x3A50->0x3A38 (pacman-nx: 0x3A38->0x3B24) (tu3: 0x3B24->0x3BE4)
   d.SetB(native::off::Flags1, d.B(native::off::Flags1) & 0xDF);
-  d.SetW(0x3B18, 0);  // katamari-nx: 0x3A44->0x3A2C (pacman-nx: 0x3A2C->0x3B18)
-  d.SetW(0x3B14, bw(kBufferAllocatorSize));  // katamari-nx: 0x3A40->0x3A28 (pacman-nx: 0x3A28->0x3B14)
-  for (u32 offset = 0x35A4; offset <= 0x35B8; offset += 4)  // katamari-nx: 0x34D0->0x34B8, 0x34E4->0x34CC (pacman-nx: 0x34B8->0x35A4, 0x34CC->0x35B8)
+  d.SetW(0x3BD8, 0);  // katamari-nx: 0x3A44->0x3A2C (pacman-nx: 0x3A2C->0x3B18) (tu3: 0x3B18->0x3BD8)
+  d.SetW(0x3BD4, bw(kBufferAllocatorSize));  // katamari-nx: 0x3A40->0x3A28 (pacman-nx: 0x3A28->0x3B14) (tu3: 0x3B14->0x3BD4)
+  for (u32 offset = 0x3664; offset <= 0x3678; offset += 4)  // katamari-nx: 0x34D0->0x34B8, 0x34E4->0x34CC (pacman-nx: 0x34B8->0x35A4, 0x34CC->0x35B8) (tu3: 0x35A4->0x3664, 0x35B8->0x3678)
     d.SetW(offset, 0);
   native::RewindRing(d);
 
@@ -786,8 +792,8 @@ u32 D3DDevice_BeginCommandBuffer_hook(u32 device_va, u32 command_buffer, u32 fla
     }
     d.SetW(native::off::TilingExtent, extent_x);
     d.SetW(native::off::TilingExtent + 4, extent_y);
-    d.SetW(0x343C, 0);  // katamari-nx: 0x338C->0x337C (pacman-nx: 0x337C->0x343C)
-    d.SetW(0x3260, 2);  // katamari-nx: 0x31B8->0x31A8 (pacman-nx: 0x31A8->0x3260)
+    d.SetW(0x3504, 0);  // katamari-nx: 0x338C->0x337C (pacman-nx: 0x337C->0x343C) (tu3: 0x343C->0x3504)
+    d.SetW(0x3328, 2);  // katamari-nx: 0x31B8->0x31A8 (pacman-nx: 0x31A8->0x3260) (tu3: 0x3260->0x3328)
     if (flags & 0x40) {
       ConfigureForOnePassZPass(d, (flags >> 7) & 1, tile_count, extent_x);
       bw(kBufferFlags) = u32(bw(kBufferFlags)) | 0x20000;
@@ -795,10 +801,10 @@ u32 D3DDevice_BeginCommandBuffer_hook(u32 device_va, u32 command_buffer, u32 fla
   }
   if (flags & 4) {
     d.SetB(native::off::Flags, d.B(native::off::Flags) | 0x40);
-    d.SetW(0x3250, native::Extract(d.W(native::off::DepthControl), 4, 3));  // katamari-nx: 0x31A8->0x3198 (pacman-nx: 0x3198->0x3250)
+    d.SetW(0x3318, native::Extract(d.W(native::off::DepthControl), 4, 3));  // katamari-nx: 0x31A8->0x3198 (pacman-nx: 0x3198->0x3250) (tu3: 0x3250->0x3318)
     if (d.B(native::off::Flags3) & 0x20) {
       u64 predicated = d.Q(native::off::PredicatedPending2) | (u64(1) << 37);
-      if (d.W(0x3428) != (d.W(native::off::SurfaceInfo) & 0x3FFF))  // katamari-nx: 0x3380->0x3370 (pacman-nx: 0x3370->0x3428)
+      if (d.W(0x34F0) != (d.W(native::off::SurfaceInfo) & 0x3FFF))  // katamari-nx: 0x3380->0x3370 (pacman-nx: 0x3370->0x3428) (tu3: 0x3428->0x34F0)
         predicated |= u64(1) << 57;
       d.SetQ(native::off::PredicatedPending2, predicated);
     }
@@ -920,7 +926,7 @@ void D3DDevice_Swap_hook(u32 device_va, u32 front_buffer, u32 /*parameters*/) {
     banjo::renut_gpu::checks::QueueKickFlush();
     KickFence(device);
     // banjo-nx (2026-10-20, banjo_renut_game_gamma): the device's gamma ramp (StoreGamma's +0x3A9C) for the present.
-    Video::NoteGameGamma(device + 0x3B70);  // katamari-nx: 0x3A9C->0x3A84 (pacman-nx: 0x3A84->0x3B70)
+    Video::NoteGameGamma(device + 0x3C30);  // katamari-nx: 0x3A9C->0x3A84 (pacman-nx: 0x3A84->0x3B70) (tu3: 0x3B70->0x3C30)
   }
 
   render_thread::QueueFrame([front_buffer, swap_ordinal] {
@@ -977,8 +983,8 @@ void D3DDevice_InsertCallback_hook(u32 device, u32 /*type*/, u32 callback, u32 c
 // ---------------------------------------------------------------------------
 
 constexpr u32 kDeviceOffsetReferenceCount = 0x3C;
-constexpr u32 kDeviceOffsetOwnerThread = 0x2A88;
-constexpr u32 kDeviceCapsVa = 0x82061E58;  // pacman-nx: Katamari's 304 bytes, word for word;  // N&B's constant D3DCAPS9 (katamari-nx: 0x82161B30->0x820FC1F8)
+constexpr u32 kDeviceOffsetOwnerThread = 0x2B08;
+constexpr u32 kDeviceCapsVa = 0x820B6EB8;  // pacman-nx: Katamari's 304 bytes, word for word;  // N&B's constant D3DCAPS9 (katamari-nx: 0x82161B30->0x820FC1F8)
 constexpr u32 kDeviceCapsSize = 0x130;
 // katamari-nx: XDK 2.0.5632 has no D3D_IsFusion and no such word (N&B's 0x82DC67D4); 0 = not a Fusion GPU.
 constexpr u32 kFusionVa = 0;      // non-zero on a Fusion GPU
@@ -1022,10 +1028,10 @@ void D3DDevice_GetDisplayMode_hook(u32 device_va, u32 /*swap_chain*/, mapped_u32
   const native::Device d = native::DeviceAt(device_va);
   if (!d || !mode)
     return;
-  mode[0] = d.W(0x35BC);  // katamari-nx: 0x34E8->0x34D0 (pacman-nx: 0x34D0->0x35BC)
-  mode[1] = d.W(0x35C0);  // katamari-nx: 0x34EC->0x34D4 (pacman-nx: 0x34D4->0x35C0)
-  mode[2] = d.W(0x5508);  // katamari-nx: 0x5434->0x5418 (pacman-nx: 0x5418->0x5508)
-  mode[3] = d.W(0x35C4);  // katamari-nx: 0x34F0->0x34D8 (pacman-nx: 0x34D8->0x35C4)
+  mode[0] = d.W(0x367C);  // katamari-nx: 0x34E8->0x34D0 (pacman-nx: 0x34D0->0x35BC) (tu3: 0x35BC->0x367C)
+  mode[1] = d.W(0x3680);  // katamari-nx: 0x34EC->0x34D4 (pacman-nx: 0x34D4->0x35C0) (tu3: 0x35C0->0x3680)
+  mode[2] = d.W(0x55CC);  // katamari-nx: 0x5434->0x5418 (pacman-nx: 0x5418->0x5508) (tu3: 0x5508->0x55CC)
+  mode[3] = d.W(0x3684);  // katamari-nx: 0x34F0->0x34D8 (pacman-nx: 0x34D8->0x35C4) (tu3: 0x35C4->0x3684)
 }
 
 // void D3DDevice_BlockOnFence(DWORD Fence) [0x8225D1D0]: on the device D3D
@@ -1129,22 +1135,22 @@ std::array<u16, 1024> GammaTable(bool inverse) {
 
 // The device's gamma (+0x3A9C, red, green, blue: 256 words each) for the
 // display to pick up; the renderer presents without it.
-constexpr u32 kDeviceOffsetGammaRamp = 0x3B70;  // katamari-nx: 0x3A9C->0x3A84 (pacman-nx: 0x3A84->0x3B70)
+constexpr u32 kDeviceOffsetGammaRamp = 0x3C30;  // katamari-nx: 0x3A9C->0x3A84 (pacman-nx: 0x3A84->0x3B70) (tu3: 0x3B70->0x3C30)
 
 void StoreGamma(native::Device d, const be_u16 (&corrected)[768]) {
   if (std::memcmp(corrected, d.bytes + kDeviceOffsetGammaRamp, sizeof(corrected)) == 0)
     return;
   if (KeGetCurrentProcessType() != 2) {
     // The display's pending copy takes the previous ramp first.
-    const u32 pending = d.W(0x5E64);  // katamari-nx: 0x5D90->0x56E4 (pacman-nx: 0x56E4->0x5E64)
-    if (pending && !(d.W(0x5E68) & 0x80000000u)) {  // katamari-nx: 0x5D94->0x56E8 (pacman-nx: 0x56E8->0x5E68)
+    const u32 pending = d.W(0x5F2C);  // katamari-nx: 0x5D90->0x56E4 (pacman-nx: 0x56E4->0x5E64) (tu3: 0x5E64->0x5F2C)
+    if (pending && !(d.W(0x5F30) & 0x80000000u)) {  // katamari-nx: 0x5D94->0x56E8 (pacman-nx: 0x56E8->0x5E68) (tu3: 0x5E68->0x5F30)
       if (auto *dest = GuestPtr<u8>(pending))
         std::memcpy(dest, d.bytes + kDeviceOffsetGammaRamp, sizeof(corrected));
     }
-    d.SetW(0x5E68, d.W(0x5E68) | 0x80000000u);  // katamari-nx: 0x5D94->0x56E8, 0x5D94->0x56E8 (pacman-nx: 0x56E8->0x5E68, 0x56E8->0x5E68)
+    d.SetW(0x5F30, d.W(0x5F30) | 0x80000000u);  // katamari-nx: 0x5D94->0x56E8, 0x5D94->0x56E8 (pacman-nx: 0x56E8->0x5E68, 0x56E8->0x5E68) (tu3: 0x5E68->0x5F30, 0x5E68->0x5F30)
   }
   std::memcpy(d.bytes + kDeviceOffsetGammaRamp, corrected, sizeof(corrected));
-  d.SetW(0x4218, d.W(0x4218) | 2);  // katamari-nx: 0x4144->0x412C, 0x4144->0x412C (pacman-nx: 0x412C->0x4218, 0x412C->0x4218)
+  d.SetW(0x42DC, d.W(0x42DC) | 2);  // katamari-nx: 0x4144->0x412C, 0x4144->0x412C (pacman-nx: 0x412C->0x4218, 0x412C->0x4218) (tu3: 0x4218->0x42DC, 0x4218->0x42DC)
 }
 
 // D3DDevice_SetGammaRamp's work: the ramp (D3DGAMMARAMP, 3 x 256 words)
@@ -1193,7 +1199,7 @@ void D3DDevice_SetGammaRamp_hook(u32 device_va, u32 /*flags*/, u32 ramp_va) {
 
 // void D3DDevice_SetPWLGamma(D3DDevice*, const D3DPWLGAMMA*) [0x8261FAD0]
 // (TU3's build dropped the unused Flags between them)
-void D3DDevice_SetPWLGamma_hook(u32 device_va, u32 pwl_va) {
+void D3DDevice_SetPWLGamma_hook(u32 device_va, u32 /*flags*/, u32 pwl_va) {  // pacman-nx (tu3): XDK 21250's form
   native::Device d = native::DeviceAt(device_va);
   if (!d || !pwl_va)
     return;
@@ -1257,10 +1263,10 @@ void SetFence(u32 device_va) {
   if (bytes[kDeviceOffsetFlags2] & kDeviceFlagImmediateFences) {
     Device d = DeviceAt(device_va);
     const u32 fence = d.W(off::FenceTag);
-    if (!d.W(0x54F0)) {  // katamari-nx: 0x541C->0x5404 (pacman-nx: 0x5404->0x54F0)
+    if (!d.W(0x55B4)) {  // katamari-nx: 0x541C->0x5404 (pacman-nx: 0x5404->0x54F0) (tu3: 0x54F0->0x55B4)
       if (auto *completion = GuestPtr<be_u32>(d.W(off::FenceCompletion))) {
         completion[0] = fence;
-        completion[1] = (d.W(0x3B1C) & 3) | d.W(off::Ring);  // katamari-nx: 0x3A48->0x3A30 (pacman-nx: 0x3A30->0x3B1C)
+        completion[1] = (d.W(0x3BDC) & 3) | d.W(off::Ring);  // katamari-nx: 0x3A48->0x3A30 (pacman-nx: 0x3A30->0x3B1C) (tu3: 0x3B1C->0x3BDC)
       }
     }
     d.SetW(off::FenceTag, fence + 2);
@@ -1273,34 +1279,34 @@ void SetFence(u32 device_va) {
 } // namespace renut::gpu::native
 
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824E0590, D3DDevice_InsertCallback_hook);  // pacman-nx: Katamari sub_824E0590, N&B sub_821CAF18; not in this game: D3DDevice_InsertCallback: best 0.70, unrelated game code
-BANJO_RENUT_HOOK(sub_821C1A20, D3DDevice_AddRef_hook);  // pacman-nx: Katamari sub_824D01C8, N&B sub_82634AD0; GW
+BANJO_RENUT_HOOK(sub_82236BB0, D3DDevice_AddRef_hook);  // pacman-nx: Katamari sub_824D01C8, N&B sub_82634AD0; GW (base sub_821C1A20)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824D0430, D3DDevice_AcquireThreadOwnership_hook);  // pacman-nx: Katamari sub_824D0430, N&B sub_82634B40; not in this game: D3DDevice_AcquireThreadOwnership: best 0.82, unrelated game code
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824D0470, D3DDevice_ReleaseThreadOwnership_hook);  // pacman-nx: Katamari sub_824D0470, N&B sub_82634B80; not in this game: D3DDevice_ReleaseThreadOwnership: a 4-instruction shape, no D3D-range match
-BANJO_RENUT_HOOK(sub_821CA5A8, D3DDevice_GetDeviceCaps_hook);  // pacman-nx: Katamari sub_824E6410, N&B sub_82641480; KAT,NB
+BANJO_RENUT_HOOK(sub_82240878, D3DDevice_GetDeviceCaps_hook);  // pacman-nx: Katamari sub_824E6410, N&B sub_82641480; KAT,NB (base sub_821CA5A8)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_82641498, D3DDevice_GetDisplayMode_hook);  // pacman-nx: N&B sub_82641498; not in this game: D3DDevice_GetDisplayMode: no match
-BANJO_RENUT_HOOK(sub_821C86D8, D3DDevice_BlockOnFence_hook);  // pacman-nx: N&B sub_8225D1D0; GW,NB
-BANJO_RENUT_HOOK(sub_821C4810, D3D_SynchronizeToPresentationInterval_hook);  // pacman-nx: Katamari sub_824E89E8, N&B sub_82258778; GW
-BANJO_RENUT_HOOK(sub_821C0088, D3DResource_GetDevice_hook);  // pacman-nx: N&B sub_8263D4B8; NB
+BANJO_RENUT_HOOK(sub_8223E328, D3DDevice_BlockOnFence_hook);  // pacman-nx: N&B sub_8225D1D0; GW,NB (base sub_821C86D8)
+BANJO_RENUT_HOOK(sub_82239FD8, D3D_SynchronizeToPresentationInterval_hook);  // pacman-nx: Katamari sub_824E89E8, N&B sub_82258778; GW (base sub_821C4810)
+BANJO_RENUT_HOOK(sub_82234C58, D3DResource_GetDevice_hook);  // pacman-nx: N&B sub_8263D4B8; NB (base sub_821C0088)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_82BC8078, D3D_IsFusion_hook);  // pacman-nx: N&B sub_82BC8078; not in this game: D3D_IsFusion: no match
-BANJO_RENUT_HOOK(sub_821B8440, D3DDevice_SetGammaRamp_hook);  // pacman-nx: Katamari sub_824DE218, N&B sub_82636F48; HAND D3DDevice_SetGammaRamp: 0.98 against N&B's; calls sub_821CA1F0, the pair of the sub_82646E
-BANJO_RENUT_HOOK(sub_821B8510, D3DDevice_SetPWLGamma_hook);  // pacman-nx: Katamari sub_824DE2F8, N&B sub_82637018; HAND D3DDevice_SetPWLGamma: 0.98; calls sub_821CA288, the pair of the sub_82646F60 N&B's SetPWL
-BANJO_RENUT_HOOK(sub_821C2008, Direct3D_CreateDevice_hook);  // pacman-nx: Katamari sub_824D0598, N&B sub_82634990; GW
-BANJO_RENUT_HOOK(sub_821C1B60, D3DDevice_Release_hook);  // pacman-nx: Katamari sub_824D0368, N&B sub_82634AE8; GW,NB
-BANJO_RENUT_HOOK(sub_821D7450, D3D_XenonGpu_Initialize_hook);  // pacman-nx: Katamari sub_824ED278, N&B sub_8264B748; HAND D3D_XenonGpu_Initialize: the device init's call right before InitializePresentationParamet
-BANJO_RENUT_HOOK(sub_821CF3D0, D3D_InitializeApiState_hook);  // pacman-nx: Katamari sub_824E11A0, N&B sub_82641BC8; HAND D3D_InitializeApiState: 0.94 against Katamari's, same size (154); reads the state tables 0
-BANJO_RENUT_HOOK(sub_821CF638, D3D_InitializePresentationParameters_hook);  // pacman-nx: Katamari sub_824E1408, N&B sub_82641EA8; HAND D3D_InitializePresentationParameters: CreateTexture, CreateSurface twice, SetRenderTarget,
-BANJO_RENUT_HOOK(sub_821CFE10, D3D_CDevice_Uninitialize_hook);  // pacman-nx: Katamari sub_824E1B50, N&B sub_82642568; NB
-BANJO_RENUT_HOOK(sub_821C93A8, KickOff_hook);  // pacman-nx: Katamari sub_824E0298, N&B sub_821DFFF0; GW,KAT
-BANJO_RENUT_HOOK(sub_821C9220, KickOffSegment_hook);  // pacman-nx: Katamari sub_824E0110, N&B sub_821DFC08; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C95D8, BeginRingBig_hook);  // pacman-nx: Katamari sub_824E04B0, N&B sub_821C7360; GW,NB
+BANJO_RENUT_HOOK(sub_8222CEB8, D3DDevice_SetGammaRamp_hook);  // pacman-nx: Katamari sub_824DE218, N&B sub_82636F48; HAND D3DDevice_SetGammaRamp: 0.98 against N&B's; calls sub_821CA1F0, the pair of the sub_82646E (base sub_821B8440)
+BANJO_RENUT_HOOK(sub_8222CF88, D3DDevice_SetPWLGamma_hook);  // pacman-nx: Katamari sub_824DE2F8, N&B sub_82637018; HAND D3DDevice_SetPWLGamma: 0.98; calls sub_821CA288, the pair of the sub_82646F60 N&B's SetPWL (base sub_821B8510)
+BANJO_RENUT_HOOK(sub_822370B0, Direct3D_CreateDevice_hook);  // pacman-nx: Katamari sub_824D0598, N&B sub_82634990; GW (base sub_821C2008)
+BANJO_RENUT_HOOK(sub_82236BD8, D3DDevice_Release_hook);  // pacman-nx: Katamari sub_824D0368, N&B sub_82634AE8; GW,NB (base sub_821C1B60)
+BANJO_RENUT_HOOK(sub_82250768, D3D_XenonGpu_Initialize_hook);  // pacman-nx: Katamari sub_824ED278, N&B sub_8264B748; HAND D3D_XenonGpu_Initialize: the device init's call right before InitializePresentationParamet (base sub_821D7450)
+BANJO_RENUT_HOOK(sub_82245DA0, D3D_InitializeApiState_hook);  // pacman-nx: Katamari sub_824E11A0, N&B sub_82641BC8; HAND D3D_InitializeApiState: 0.94 against Katamari's, same size (154); reads the state tables 0 (base sub_821CF3D0)
+BANJO_RENUT_HOOK(sub_82246770, D3D_InitializePresentationParameters_hook);  // pacman-nx: Katamari sub_824E1408, N&B sub_82641EA8; HAND D3D_InitializePresentationParameters: CreateTexture, CreateSurface twice, SetRenderTarget, (base sub_821CF638)
+BANJO_RENUT_HOOK(sub_82246598, D3D_CDevice_Uninitialize_hook);  // pacman-nx: Katamari sub_824E1B50, N&B sub_82642568; NB (base sub_821CFE10)
+BANJO_RENUT_HOOK(sub_8223F638, KickOff_hook);  // pacman-nx: Katamari sub_824E0298, N&B sub_821DFFF0; GW,KAT (base sub_821C93A8)
+BANJO_RENUT_HOOK(sub_8223F2F8, KickOffSegment_hook);  // pacman-nx: Katamari sub_824E0110, N&B sub_821DFC08; GW,KAT,NB (base sub_821C9220)
+BANJO_RENUT_HOOK(sub_8223F870, BeginRingBig_hook);  // pacman-nx: Katamari sub_824E04B0, N&B sub_821C7360; GW,NB (base sub_821C95D8)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8255A200, BeginRingManual_hook);  // pacman-nx: Katamari sub_8255A200, N&B sub_82A6DD88; not in this game: D3D_CDevice_BeginRingManual: no match
-BANJO_RENUT_HOOK(sub_821C82F0, RingBufferDeviceAllocate_hook);  // pacman-nx: Katamari sub_824DF3F0, N&B sub_821FC4B8; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C8520, AllocateInlineData_hook);  // pacman-nx: N&B sub_821FC318; GW,NB
-BANJO_RENUT_HOOK(sub_821C96C8, D3DDevice_SetRingBufferParameters_hook);  // pacman-nx: Katamari sub_824E05E8, N&B sub_82640090; GW,NB
-BANJO_RENUT_HOOK(sub_821C4C40, D3DDevice_Swap_hook);  // pacman-nx: Katamari sub_824E8E90, N&B sub_822554F8; GW
+BANJO_RENUT_HOOK(sub_8223E028, RingBufferDeviceAllocate_hook);  // pacman-nx: Katamari sub_824DF3F0, N&B sub_821FC4B8; GW,KAT,NB (base sub_821C82F0)
+BANJO_RENUT_HOOK(sub_8223E470, AllocateInlineData_hook);  // pacman-nx: N&B sub_821FC318; GW,NB (base sub_821C8520)
+BANJO_RENUT_HOOK(sub_8223F960, D3DDevice_SetRingBufferParameters_hook);  // pacman-nx: Katamari sub_824E05E8, N&B sub_82640090; GW,NB (base sub_821C96C8)
+BANJO_RENUT_HOOK(sub_8223A498, D3DDevice_Swap_hook);  // pacman-nx: Katamari sub_824E8E90, N&B sub_822554F8; GW (base sub_821C4C40)
 BANJO_RENUT_UNHOOKED_HOOK_SHARED(unlinked_82640818, D3DDevice_BeginCommandBuffer_hook);  // pacman-nx: N&B sub_82640818; not in this game: D3DDevice_BeginCommandBuffer: no match: this game has no command-buffer recorder
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_82640DE8, D3DDevice_EndCommandBuffer_hook);  // pacman-nx: N&B sub_82640DE8; not in this game: D3DDevice_EndCommandBuffer: no match
 BANJO_RENUT_UNHOOKED_HOOK_SHARED(unlinked_821F1A78, D3DDevice_RunCommandBuffer_hook);  // pacman-nx: N&B sub_821F1A78; not in this game: D3DDevice_RunCommandBuffer: no match
-BANJO_RENUT_HOOK(sub_821C8608, BlockOnFence_hook);  // pacman-nx: Katamari sub_824DFC48, N&B sub_8225D370; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C1A38, CBlocker_Check_hook);  // pacman-nx: Katamari sub_824D0290, N&B sub_82634740; GW,KAT,NB
-BANJO_RENUT_HOOK(sub_821C94E0, IsFencePending_hook);  // pacman-nx: Katamari sub_824E03D0, N&B sub_8225D468; GW,NB
+BANJO_RENUT_HOOK(sub_8223E258, BlockOnFence_hook);  // pacman-nx: Katamari sub_824DFC48, N&B sub_8225D370; GW,KAT,NB (base sub_821C8608)
+BANJO_RENUT_HOOK(sub_82236858, CBlocker_Check_hook);  // pacman-nx: Katamari sub_824D0290, N&B sub_82634740; GW,KAT,NB (base sub_821C1A38)
+BANJO_RENUT_HOOK(sub_8223F778, IsFencePending_hook);  // pacman-nx: Katamari sub_824E03D0, N&B sub_8225D468; GW,NB (base sub_821C94E0)

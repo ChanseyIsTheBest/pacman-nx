@@ -245,7 +245,7 @@ constexpr u32 kDeltaUnreadEnd = kDeltaVertexF - 0x300;  // 0x480: the fetch cons
 // chunk before the one holding the vertex declaration). SA2: 11008-12224.
 // katamari-nx: a 64-byte chunk boundary, not a field: 11776 is still the last boundary before Beautiful Katamari's
 // vertex declaration (+11812), and the words between are private ones the render thread does not read.
-constexpr u32 kDeltaPrivateUnreadBegin = 10880, kDeltaPrivateUnreadEnd = 11904;  // pacman-nx: XDK 2.0.11164 (bangaio-nx's value)
+constexpr u32 kDeltaPrivateUnreadBegin = 11008, kDeltaPrivateUnreadEnd = 12224;  // pacman-nx (tu3): XDK 21250, nights-nx's  // pacman-nx: XDK 2.0.11164 (bangaio-nx's value)
 constexpr bool DeltaChunkRead(u32 i) {
   const u32 at = DeltaChunkOffset(i);
   return !(at < kDeltaUnreadEnd || (at >= kDeltaPrivateUnreadBegin && at + 64 <= kDeltaPrivateUnreadEnd));

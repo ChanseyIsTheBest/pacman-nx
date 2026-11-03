@@ -1,0 +1,10 @@
+# pacman-nx (2026-11-03): Renut's hooks placed by hand in title update 3 (XDK 2.0.21250), read by tools/renut_hook_map_tu3.py before
+# the routes. One line per hook: the base game's address on the hook line, the update's address or - (leave unhooked), the evidence.
+#
+# The function map paired these by place; the three call-site routes agree on the other function, and the bodies say the same:
+821C1B60  82236BD8  D3DDevice_Release: PB, P2 and NI agree; the map's 82236A88 is its neighbour, 3 bl sites against 1
+821C6EA8  8223DBD8  D3DDevice_Resolve: PB, P2 and NI agree. The public wrapper (`li r7,0; li r6,0; bl 0x8223CA80`, 4 bl sites); its body 8223CA80 has only that one caller. Peggle 2's hook is on the wrapper too
+# Tiny thunks: the base hooks both each thunk and its body, each with its own line, so the routes' bodies are right and these are the
+# update's thunks: the base's 821C3E60 `b 0x821C2D90` and 821C3E68 `b 0x821C2E90`, the update's 82238FF0 `b 0x82237E48` and 82238F38 `b 0x82237F48`.
+821C3E60  82238FF0  Get2DSurfaceDesc: the thunk; the base-to-update call-site route (PB) says the same
+821C3E68  82238F38  Get3DSurfaceDesc: the thunk; the base-to-update call-site route (PB) says the same

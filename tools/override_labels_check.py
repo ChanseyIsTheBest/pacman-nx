@@ -23,7 +23,7 @@ BASE = 0x82000000
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--image', default=os.path.join(ROOT, 'out', 'renut_image.bin'))
-    ap.add_argument('--code', default='820F0000:82458B7C')
+    ap.add_argument('--code', default='82140000:824D5A34')
     a = ap.parse_args()
     img = open(a.image, 'rb').read()
     lo, hi = (int(x, 16) for x in a.code.split(':'))

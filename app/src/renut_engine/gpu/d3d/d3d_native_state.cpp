@@ -27,34 +27,34 @@ constexpr u32 kPendingMisc = 4;     // m_MiscPacket and friends
 
 // Render state storage in the CDevice-private area (TU3: 8 bytes further on
 // than the first release from 0x2E30 to 0x3390, 4 from 0x2AC0).
-constexpr u32 kBlendState = 0x2EF8;       // D3D blend: src 0-4, op 5-7, dest 8-12, alpha at 16+ (katamari-nx: 0x2E50->0x2E40) (pacman-nx: 0x2E40->0x2EF8)
-constexpr u32 kBlendFlags = 0x2EFC;       // 31 blend enable, 30 separate alpha, HiZ fields (katamari-nx: 0x2E54->0x2E44) (pacman-nx: 0x2E44->0x2EFC)
-constexpr u32 kScissorTestEnable = 0x2F00;  // katamari-nx: 0x2E58->0x2E48 (pacman-nx: 0x2E48->0x2F00)
-constexpr u32 kColorWriteEnable = 0x2F04;  // [4] (katamari-nx: 0x2E5C->0x2E4C) (pacman-nx: 0x2E4C->0x2F04)
-constexpr u32 kZEnable = 0x2F14;  // katamari-nx: 0x2E6C->0x2E5C (pacman-nx: 0x2E5C->0x2F14)
-constexpr u32 kStencilEnable = 0x2F18;  // katamari-nx: 0x2E70->0x2E60 (pacman-nx: 0x2E60->0x2F18)
-constexpr u32 kPointSpriteEnable = 0x2F1C;  // katamari-nx: 0x2E74->0x2E64 (pacman-nx: 0x2E64->0x2F1C)
-constexpr u32 kPointSize = 0x2F24;  // katamari-nx: 0x2E7C->0x2E6C (pacman-nx: 0x2E6C->0x2F24)
-constexpr u32 kPointSizeMin = 0x2F28;  // katamari-nx: 0x2E80->0x2E70 (pacman-nx: 0x2E70->0x2F28)
-constexpr u32 kPointSizeMax = 0x2F2C;  // katamari-nx: 0x2E84->0x2E74 (pacman-nx: 0x2E74->0x2F2C)
-constexpr u32 kHighPrecisionBlend = 0x2FAC;  // [4] (katamari-nx: 0x2F04->0x2EF4) (pacman-nx: 0x2EF4->0x2FAC)
-constexpr u32 kPresentInterval = 0x35F0;  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0)
-constexpr u32 kBehaviorFlags2 = 0x5E80;  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80)
+constexpr u32 kBlendState = 0x2FF8;       // D3D blend: src 0-4, op 5-7, dest 8-12, alpha at 16+ (katamari-nx: 0x2E50->0x2E40) (pacman-nx: 0x2E40->0x2EF8) (tu3: 0x2EF8->0x2FF8)
+constexpr u32 kBlendFlags = 0x2FFC;       // 31 blend enable, 30 separate alpha, HiZ fields (katamari-nx: 0x2E54->0x2E44) (pacman-nx: 0x2E44->0x2EFC) (tu3: 0x2EFC->0x2FFC)
+constexpr u32 kScissorTestEnable = 0x3000;  // katamari-nx: 0x2E58->0x2E48 (pacman-nx: 0x2E48->0x2F00) (tu3: 0x2F00->0x3000)
+constexpr u32 kColorWriteEnable = 0x3004;  // [4] (katamari-nx: 0x2E5C->0x2E4C) (pacman-nx: 0x2E4C->0x2F04) (tu3: 0x2F04->0x3004)
+constexpr u32 kZEnable = 0x3014;  // katamari-nx: 0x2E6C->0x2E5C (pacman-nx: 0x2E5C->0x2F14) (tu3: 0x2F14->0x3014)
+constexpr u32 kStencilEnable = 0x3018;  // katamari-nx: 0x2E70->0x2E60 (pacman-nx: 0x2E60->0x2F18) (tu3: 0x2F18->0x3018)
+constexpr u32 kPointSpriteEnable = 0x301C;  // katamari-nx: 0x2E74->0x2E64 (pacman-nx: 0x2E64->0x2F1C) (tu3: 0x2F1C->0x301C)
+constexpr u32 kPointSize = 0x3024;  // katamari-nx: 0x2E7C->0x2E6C (pacman-nx: 0x2E6C->0x2F24) (tu3: 0x2F24->0x3024)
+constexpr u32 kPointSizeMin = 0x3028;  // katamari-nx: 0x2E80->0x2E70 (pacman-nx: 0x2E70->0x2F28) (tu3: 0x2F28->0x3028)
+constexpr u32 kPointSizeMax = 0x302C;  // katamari-nx: 0x2E84->0x2E74 (pacman-nx: 0x2E74->0x2F2C) (tu3: 0x2F2C->0x302C)
+constexpr u32 kHighPrecisionBlend = 0x3078;  // [4] (katamari-nx: 0x2F04->0x2EF4) (pacman-nx: 0x2EF4->0x2FAC) (tu3: 0x2FAC->0x3078)
+constexpr u32 kPresentInterval = 0x36B0;  // katamari-nx: 0x351C->0x3504 (pacman-nx: 0x3504->0x35F0) (tu3: 0x35F0->0x36B0)
+constexpr u32 kBehaviorFlags2 = 0x5F48;  // katamari-nx: 0x5DAC->0x56F8 (pacman-nx: 0x56F8->0x5E80) (tu3: 0x5E80->0x5F48)
 // Sampler state storage, a byte per sampler.
-constexpr u32 kMaxAnisotropy = 0x2F44;  // katamari-nx: 0x2E9C->0x2E8C (pacman-nx: 0x2E8C->0x2F44)
-constexpr u32 kMaxMipLevel = 0x2F5E;  // katamari-nx: 0x2EB6->0x2EA6 (pacman-nx: 0x2EA6->0x2F5E)
-constexpr u32 kMinMipLevel = 0x2F78;  // katamari-nx: 0x2ED0->0x2EC0 (pacman-nx: 0x2EC0->0x2F78)
-constexpr u32 kZFilter = 0x2F92;  // bit 0 mag, 1 min, 2 separate Z filtering (katamari-nx: 0x2EEA->0x2EDA) (pacman-nx: 0x2EDA->0x2F92)
+constexpr u32 kMaxAnisotropy = 0x2A70;  // katamari-nx: 0x2E9C->0x2E8C (pacman-nx: 0x2E8C->0x2F44) (tu3: 0x2F44->0x2A70)
+constexpr u32 kMaxMipLevel = 0x3044;  // katamari-nx: 0x2EB6->0x2EA6 (pacman-nx: 0x2EA6->0x2F5E) (tu3: 0x2F5E->0x3044)
+constexpr u32 kMinMipLevel = 0x305E;  // katamari-nx: 0x2ED0->0x2EC0 (pacman-nx: 0x2EC0->0x2F78) (tu3: 0x2F78->0x305E)
+constexpr u32 kZFilter = 0x2A8A;  // bit 0 mag, 1 min, 2 separate Z filtering (katamari-nx: 0x2EEA->0x2EDA) (pacman-nx: 0x2EDA->0x2F92) (tu3: 0x2F92->0x2A8A)
 // Viewport (SetViewport's arguments, clamped) and the register image values.
-constexpr u32 kViewport = 0x3218;  // x, y, width, height, min z, max z, 0 (katamari-nx: 0x3170->0x3160) (pacman-nx: 0x3160->0x3218)
+constexpr u32 kViewport = 0x32E0;  // x, y, width, height, min z, max z, 0 (katamari-nx: 0x3170->0x3160) (pacman-nx: 0x3160->0x3218) (tu3: 0x3218->0x32E0)
 constexpr u32 kVportXScale = 0x2908;
 constexpr u32 kVportZScale = 0x2918;
-constexpr u32 kStreamDeclStrides = 0x2EE8;  // u8[16] (katamari-nx: 0x2E40->0x2E30) (pacman-nx: 0x2E30->0x2EE8)
-constexpr u32 kVertexDeclaration = 0x2ED8;  // katamari-nx: 0x2E30->0x2E24 (pacman-nx: 0x2E24->0x2ED8)
-constexpr u32 kVertexShader = 0x3248;  // katamari-nx: 0x31A0->0x3190 (pacman-nx: 0x3190->0x3248)
-constexpr u32 kPixelShader = 0x3244;  // katamari-nx: 0x319C->0x318C (pacman-nx: 0x318C->0x3244)
-constexpr u32 kGprAllocation = 0x2AA8;
-constexpr u32 kScreenExtentQueryMode = 0x2AA4;
+constexpr u32 kStreamDeclStrides = 0x2FE8;  // u8[16] (katamari-nx: 0x2E40->0x2E30) (pacman-nx: 0x2E30->0x2EE8) (tu3: 0x2EE8->0x2FE8)
+constexpr u32 kVertexDeclaration = 0x2FD0;  // katamari-nx: 0x2E30->0x2E24 (pacman-nx: 0x2E24->0x2ED8) (tu3: 0x2ED8->0x2FD0)
+constexpr u32 kVertexShader = 0x3310;  // katamari-nx: 0x31A0->0x3190 (pacman-nx: 0x3190->0x3248) (tu3: 0x3248->0x3310)
+constexpr u32 kPixelShader = 0x330C;  // katamari-nx: 0x319C->0x318C (pacman-nx: 0x318C->0x3244) (tu3: 0x3244->0x330C)
+constexpr u32 kGprAllocation = 0x2B28;
+constexpr u32 kScreenExtentQueryMode = 0x2B24;
 
 constexpr float kInv255 = 0.003921568859368563f;  // flt_82000D08
 
@@ -728,8 +728,8 @@ constexpr SamplerStateFn kSamplerStateFns[kSamplerStates] = {
 };
 
 // N&B's state tables: {getter, setter, default} per state.
-constexpr u32 kRenderStateTable = 0x8246A250;  // pacman-nx: tools/renut_state_tables.py;  // katamari-nx: 0x82D8A948->0x82AD8E48
-constexpr u32 kSamplerStateTable = 0x8246A710;  // pacman-nx: tools/renut_state_tables.py;  // katamari-nx: 0x82D8AE28->0x82AD9308
+constexpr u32 kRenderStateTable = 0x824F4CB0;  // pacman-nx: tools/renut_state_tables.py;  // katamari-nx: 0x82D8A948->0x82AD8E48
+constexpr u32 kSamplerStateTable = 0x824F5170;  // pacman-nx: tools/renut_state_tables.py;  // katamari-nx: 0x82D8AE28->0x82AD9308
 constexpr u32 kTextureSamplers = 26;
 
 u32 TableWord(u32 table, u32 index, u32 field) {
@@ -1035,7 +1035,7 @@ bool TilingBoundSurfaces(Device device) {
 void UpdateTilePredicated(Device device) {
   const u8 flags = device.B(off::Flags);
   const bool predicated = !device.W(off::PredicationSet) && !(flags & 0x08) && !(flags & 0x04) &&
-                          !device.B(0x304B) && TilingBoundSurfaces(device);  // katamari-nx: 0x2FA3->0x2F93 (pacman-nx: 0x2F93->0x304B)
+                          !device.B(0x3113) && TilingBoundSurfaces(device);  // katamari-nx: 0x2FA3->0x2F93 (pacman-nx: 0x2F93->0x304B) (tu3: 0x304B->0x3113)
   device.SetB(off::Flags, u8((flags & 0xFE) | (predicated ? 1 : 0)));
 }
 
@@ -1206,7 +1206,7 @@ void SetDepthStencilSurface(Device device, u32 surface) {
     device.SetW(off::HiControl, hi_control);
     device.SetB(off::Flags2, u8(Insert(device.B(off::Flags2), hi_control, 5, 1)));
     if ((device.B(off::Flags3) & 0x20) && TilingBoundSurfaces(device))
-      device.SetW(off::SurfaceInfo, Insert(device.W(off::SurfaceInfo), device.W(0x3424), 18, 14));  // katamari-nx: 0x337C->0x336C (pacman-nx: 0x336C->0x3424)
+      device.SetW(off::SurfaceInfo, Insert(device.W(off::SurfaceInfo), device.W(0x34EC), 18, 14));  // katamari-nx: 0x337C->0x336C (pacman-nx: 0x336C->0x3424) (tu3: 0x3424->0x34EC)
     device.Dirty(kPendingStates, Bit(55) | 0x100 | 0x20000);
   } else {
     device.SetW(off::HiControl, device.W(off::HiControl) & ~0xFu);
@@ -1367,7 +1367,7 @@ namespace {
 
 // Per D3DFORMAT (low 6 bits) its format description; 0xF00 marks a float
 // depth format (word_82005200).
-constexpr u32 kFormatTable = 0x82061AD8;  // pacman-nx: Katamari's 128 bytes, word for word;  // katamari-nx: 0x82005200->0x820FA9D0
+constexpr u32 kFormatTable = 0x820B6990;  // pacman-nx: Katamari's 128 bytes, word for word;  // katamari-nx: 0x82005200->0x820FA9D0
 // The register packets between RB_COPY_CONTROL and RB_COPY_DEST_INFO.
 constexpr u32 kCopyControl = 0x2A18;
 constexpr u32 kCopyDestInfo = 0x2A24;
@@ -1611,9 +1611,9 @@ void Resolve(Device device, u32 flags, u32 dest_texture, float clear_z, u32 clea
 namespace {
 
 constexpr u32 kExportAddress = 0x2898;       // [Index]: the stream's GPU address
-constexpr u32 kExportCount = 0x3590;         // BeginExports not yet ended (katamari-nx: 0x34C0->0x34A8) (pacman-nx: 0x34A8->0x3590)
-constexpr u32 kExportNanVertexDone = 0x3594;  // katamari-nx: 0x34C4->0x34AC (pacman-nx: 0x34AC->0x3594)
-constexpr u32 kExportFlags = 0x3598;  // katamari-nx: 0x34C8->0x34B0 (pacman-nx: 0x34B0->0x3598)
+constexpr u32 kExportCount = 0x3650;         // BeginExports not yet ended (katamari-nx: 0x34C0->0x34A8) (pacman-nx: 0x34A8->0x3590) (tu3: 0x3590->0x3650)
+constexpr u32 kExportNanVertexDone = 0x3654;  // katamari-nx: 0x34C4->0x34AC (pacman-nx: 0x34AC->0x3594) (tu3: 0x3594->0x3654)
+constexpr u32 kExportFlags = 0x3658;  // katamari-nx: 0x34C8->0x34B0 (pacman-nx: 0x34B0->0x3598) (tu3: 0x3598->0x3658)
 // N&B's switches for the two GPU workarounds below (dword_82E1A9E4/9E8). katamari-nx: XDK 2.0.5632 has no memexport
 // (no BeginExport / EndExport, the export hooks are not registered), so no such words: 0 = not set.
 constexpr u32 kSkipExportNanVertex = 0;

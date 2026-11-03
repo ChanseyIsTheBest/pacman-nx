@@ -238,15 +238,21 @@ constexpr u32 FieldOfOffset(u32 at) {
     return kFieldViewPackets;
   if (at >= 0x29C0 && at < 0x29C4)
     return kField29C0;
-  if (at < 0x2A80)
+  // pacman-nx (2026-11-03, title update 3, nights-nx's form): XDK 21250 has XDK 21256 / 21173's layout. MaxAnisotropy and
+  // ZFilter are public there (+0x2A70 / +0x2A8A; the base game's XDK kept private copies), the private words the renderer does
+  // not read are 11008-12223, the declaration is +0x2FD0, and the private render-state copies end after HighPrecisionBlend
+  // +0x3078.
+  if (at < 0x2A70)
     return kFieldMisc;
-  // Title update 3's CDevice (banjo-nx 2026-10-29): 4 bytes more from 0x2AC0 and 8 from 0x2E30 (the base's 0x2E2C),
-  // the same from 0x3390 (d3d.h); the base's boundaries in the comments of DrawField moved with their fields.
-  if (at < 0x2EAC)  // katamari-nx: 0x2E04->0x2DF8 (pacman-nx: 0x2DF8->0x2EAC)
+  if (at < 0x2AA4)
+    return kFieldPrivate;
+  if (at < 0x2B00)
+    return kFieldMisc;
+  if (at < 0x2FC0)
     return kFieldUnread;
   if (at >= d3d::kDeviceOffsetVertexDeclaration && at < d3d::kDeviceOffsetVertexDeclaration + 4)
     return kFieldDecl;
-  if (at < 0x2FB0)  // katamari-nx: 0x2F08->0x2EF8 (pacman-nx: 0x2EF8->0x2FB0)
+  if (at < 0x3080)
     return kFieldPrivate;
   if (at < d3d::kDeviceOffsetIndexBuffer)
     return kFieldTail;
@@ -258,7 +264,7 @@ constexpr u32 FieldOfOffset(u32 at) {
     return kFieldStreams;
   if (at < d3d::kDeviceOffsetTextures + 4 * d3d::kTextureFetchSlots)
     return kFieldTexWords;
-  if (at < 0x3234)  // katamari-nx: 0x318C->0x317C (pacman-nx: 0x317C->0x3234)
+  if (at < 0x32FC)  // katamari-nx: 0x318C->0x317C (pacman-nx: 0x317C->0x3234) (tu3: 0x3234->0x32FC)
     return kFieldTail;
   if (at < d3d::kDeviceOffsetPixelShader)
     return kFieldScissor;

@@ -658,9 +658,9 @@ void D3DVertexShader_Bind_hook(u32 shader_va, u32 declaration_va, mapped_u32 str
 
 } // namespace
 
-BANJO_RENUT_HOOK(sub_821BC9B0, D3DDevice_CreateVertexShader_hook);  // pacman-nx: Katamari sub_824D6120, N&B sub_826377C0; GW,NB
-BANJO_RENUT_HOOK(sub_821BC7C8, D3DDevice_CreatePixelShader_hook);  // pacman-nx: Katamari sub_824D6010, N&B sub_826375D8; GW,NB
-BANJO_RENUT_HOOK(sub_821BB2B0, D3DDevice_CreateVertexDeclaration_hook);  // pacman-nx: Katamari sub_824D4C50, N&B sub_826379A0; GW
+BANJO_RENUT_HOOK(sub_82231560, D3DDevice_CreateVertexShader_hook);  // pacman-nx: Katamari sub_824D6120, N&B sub_826377C0; GW,NB (base sub_821BC9B0)
+BANJO_RENUT_HOOK(sub_82231378, D3DDevice_CreatePixelShader_hook);  // pacman-nx: Katamari sub_824D6010, N&B sub_826375D8; GW,NB (base sub_821BC7C8)
+BANJO_RENUT_HOOK(sub_8222FE30, D3DDevice_CreateVertexDeclaration_hook);  // pacman-nx: Katamari sub_824D4C50, N&B sub_826379A0; GW (base sub_821BB2B0)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8263FBD0, D3DVertexShader_Bind_hook);  // pacman-nx: N&B sub_8263FBD0; not in this game: D3DVertexShader_Bind: no match
-BANJO_RENUT_HOOK(sub_821BC8B8, XGRegisterVertexShader_hook);  // pacman-nx: Katamari sub_824D4838, N&B sub_826376C8; GW,NB
-BANJO_RENUT_HOOK(sub_821BADE0, XGRegisterPixelShader_hook);  // pacman-nx: N&B sub_826375A0; GW,NB
+BANJO_RENUT_HOOK(sub_82231468, XGRegisterVertexShader_hook);  // pacman-nx: Katamari sub_824D4838, N&B sub_826376C8; GW,NB (base sub_821BC8B8)
+BANJO_RENUT_HOOK(sub_8222F8D0, XGRegisterPixelShader_hook);  // pacman-nx: N&B sub_826375A0; GW,NB (base sub_821BADE0)

@@ -52,7 +52,7 @@ namespace {
 constexpr u32 kE_OUTOFMEMORY = 0x8007000Eu;
 // D3DVIEWPORT9 {0, 0, 0xFFFF, 0xFFFF, 0.0, 1.0} in N&B's data (unk_82001744):
 // the whole surface.
-constexpr u32 kFullViewport = 0x820617BC;  // pacman-nx: Katamari's 24 bytes, word for word;  // katamari-nx: 0x82001744->0x820FAEB4
+constexpr u32 kFullViewport = 0x820B6664;  // pacman-nx: Katamari's 24 bytes, word for word;  // katamari-nx: 0x82001744->0x820FAEB4
 // D3DRS_HIZWRITEENABLE's index in the render state table.
 constexpr u32 kRenderStateHiZWriteEnable = 97;
 
@@ -387,7 +387,7 @@ static void BeginTilingImpl(u32 device, u32 count, u32 rects_va, u32 color_va, u
   }
   d.SetW(native::off::TilingExtent, extent_x);
   d.SetW(native::off::TilingExtent + 4, extent_y);
-  d.SetW(0x343C, flags);  // katamari-nx: 0x338C->0x337C; XDK 2.0.5632 keeps Flags there (N&B's update: 0) (pacman-nx: 0x337C->0x343C)
+  d.SetW(0x3504, flags);  // katamari-nx: 0x338C->0x337C; XDK 2.0.5632 keeps Flags there (N&B's update: 0) (pacman-nx: 0x337C->0x343C) (tu3: 0x343C->0x3504)
 
   if (!(flags & 1) && !(d.B(native::off::Flags3) & 0x20)) {
     // The largest tile, from its origin: its clear covers a tile of EDRAM.
@@ -400,7 +400,7 @@ static void BeginTilingImpl(u32 device, u32 count, u32 rects_va, u32 color_va, u
     // after the clear.
     float viewport[6];
     for (u32 i = 0; i < 6; ++i)
-      viewport[i] = d.F(0x3218 + i * 4);  // katamari-nx: 0x3170->0x3160 (pacman-nx: 0x3160->0x3218)
+      viewport[i] = d.F(0x32E0 + i * 4);  // katamari-nx: 0x3170->0x3160 (pacman-nx: 0x3160->0x3218) (tu3: 0x3218->0x32E0)
     i32 scissor[4];
     for (u32 i = 0; i < 4; ++i)
       scissor[i] = i32(d.W(native::off::ScissorRect + i * 4));
@@ -416,17 +416,17 @@ static void BeginTilingImpl(u32 device, u32 count, u32 rects_va, u32 color_va, u
     native::SetScissorRect(d, scissor[0], scissor[1], scissor[2], scissor[3]);
   }
   if (const auto *color = color_va ? GuestPtr<const u8>(color_va) : nullptr)
-    std::memcpy(d.bytes + 0x3440, color, 16);  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440)
+    std::memcpy(d.bytes + 0x3508, color, 16);  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440) (tu3: 0x3440->0x3508)
   else
-    std::memset(d.bytes + 0x3440, 0, 16);  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440)
-  d.SetF(0x3450, clear_z);  // flt_82000D18 (katamari-nx: 0x33A0->0x3390; XDK 2.0.5632: the ClearZ argument) (pacman-nx: 0x3390->0x3450)
-  d.SetW(0x3454, clear_stencil);  // katamari-nx: 0x33A4->0x3394; XDK 2.0.5632: the ClearStencil argument (pacman-nx: 0x3394->0x3454)
+    std::memset(d.bytes + 0x3508, 0, 16);  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440) (tu3: 0x3440->0x3508)
+  d.SetF(0x3518, clear_z);  // flt_82000D18 (katamari-nx: 0x33A0->0x3390; XDK 2.0.5632: the ClearZ argument) (pacman-nx: 0x3390->0x3450) (tu3: 0x3450->0x3518)
+  d.SetW(0x351C, clear_stencil);  // katamari-nx: 0x33A4->0x3394; XDK 2.0.5632: the ClearStencil argument (pacman-nx: 0x3394->0x3454) (tu3: 0x3454->0x351C)
 
   const u32 target = d.W(native::off::RenderTargets);
-  d.SetW(0x3264, target ? target : d.W(native::off::DepthStencil));  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264)
+  d.SetW(0x332C, target ? target : d.W(native::off::DepthStencil));  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264) (tu3: 0x3264->0x332C)
   for (u32 i = 0; i < 5; ++i)  // the 4 targets, then depth
     d.SetW(native::off::TilingSurfaces + i * 4, d.W(native::off::RenderTargets + i * 4));
-  d.SetW(0x3260, 2);  // katamari-nx: 0x31B8->0x31A8 (pacman-nx: 0x31A8->0x3260)
+  d.SetW(0x3328, 2);  // katamari-nx: 0x31B8->0x31A8 (pacman-nx: 0x31A8->0x3260) (tu3: 0x3260->0x3328)
   d.SetB(native::off::Flags, d.B(native::off::Flags) | 0x20);
   d.SetW(native::off::PredicationSet, 0);
   native::UpdateTilePredicated(d);
@@ -479,7 +479,7 @@ static u32 EndTilingImpl(u32 device, bool katamari, u32 resolve_flags, u32 rects
       const u32 tile = native::off::TileRects + i * 16;
       ClearRect rect{i32(d.W(tile)), i32(d.W(tile + 4)), i32(d.W(tile + 8)), i32(d.W(tile + 12))};
       // A tile at the surface's edge resolves to a multiple of 8.
-      const u32 surface = d.W(0x3264);  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264)
+      const u32 surface = d.W(0x332C);  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264) (tu3: 0x3264->0x332C)
       const auto *s = surface ? GuestPtr<const be_u32>(surface) : nullptr;
       const u32 size = s ? u32(s[9]) : 0;
       if (u32(rect.x2) == (size >> 18) + 1)
@@ -498,8 +498,8 @@ static u32 EndTilingImpl(u32 device, bool katamari, u32 resolve_flags, u32 rects
           if (d.W(native::off::DepthStencil))
             flags |= 0x200;
         }
-        Resolve(device, flags, &rect, dest_texture, dest_x, dest_y, 0, 0, device + 0x3440,  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440)
-                d.F(0x3450), d.W(0x3454), 0);  // katamari-nx: 0x33A0->0x3390, 0x33A4->0x3394 (pacman-nx: 0x3390->0x3450, 0x3394->0x3454)
+        Resolve(device, flags, &rect, dest_texture, dest_x, dest_y, 0, 0, device + 0x3508,  // katamari-nx: 0x3390->0x3380 (pacman-nx: 0x3380->0x3440) (tu3: 0x3440->0x3508)
+                d.F(0x3518), d.W(0x351C), 0);  // katamari-nx: 0x33A0->0x3390, 0x33A4->0x3394 (pacman-nx: 0x3390->0x3450, 0x3394->0x3454) (tu3: 0x3450->0x3518, 0x3454->0x351C)
       } else {
         Resolve(device, resolve_flags, &rect, dest_texture, dest_x, dest_y, 0, 0, color_va,
                 clear_z /*N&B: flt_82000C1C*/, clear_stencil, params);
@@ -517,7 +517,7 @@ static u32 EndTilingImpl(u32 device, bool katamari, u32 resolve_flags, u32 rects
 
   d.SetB(native::off::Flags3, d.B(native::off::Flags3) & 0xCF);
   d.SetB(native::off::Flags, d.B(native::off::Flags) & 0xDF);
-  d.SetW(0x3264, 0);  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264)
+  d.SetW(0x332C, 0);  // katamari-nx: 0x31BC->0x31AC (pacman-nx: 0x31AC->0x3264) (tu3: 0x3264->0x332C)
   d.SetW(native::off::PredicationSet, 0);
   native::UpdateTilePredicated(d);
   d.SetW(native::off::RunPredicationState, 0);
@@ -572,7 +572,7 @@ void D3DDevice_Present_hook(u32 device) {
   FlushDeferredVertices(device);
   float viewport[6];
   for (u32 i = 0; i < 6; ++i)
-    viewport[i] = d.F(0x3218 + i * 4);  // katamari-nx: 0x3170->0x3160 (pacman-nx: 0x3160->0x3218)
+    viewport[i] = d.F(0x32E0 + i * 4);  // katamari-nx: 0x3170->0x3160 (pacman-nx: 0x3160->0x3218) (tu3: 0x3218->0x32E0)
   i32 scissor[4];
   for (u32 i = 0; i < 4; ++i)
     scissor[i] = i32(d.W(native::off::ScissorRect + i * 4));
@@ -588,7 +588,7 @@ void D3DDevice_Present_hook(u32 device) {
   native::SetViewport(d, viewport[0], viewport[1], viewport[2], viewport[3], viewport[4],
                       viewport[5]);
   native::SetScissorRect(d, scissor[0], scissor[1], scissor[2], scissor[3]);
-  native::Swap(device, front_buffer, device + 0x361C);  // katamari-nx: 0x3548->0x3530 (pacman-nx: 0x3530->0x361C)
+  native::Swap(device, front_buffer, device + 0x36DC);  // katamari-nx: 0x3548->0x3530 (pacman-nx: 0x3530->0x361C) (tu3: 0x361C->0x36DC)
   // katamari-nx: one game frame ends at Present (N&B's ended at its appMainDraw hook, renut_engine/FPS.cpp): frame
   // time, the Switch profiler's frame marks, the stall watchdog.
   g_banjo_game_frames.fetch_add(1, std::memory_order_relaxed);
@@ -607,15 +607,15 @@ void D3DDevice_SetPixelShader_hook(u32 device, u32 shader) {
 
 } // namespace
 
-BANJO_RENUT_HOOK(sub_821C1538, D3DDevice_DrawVertices_hook);  // pacman-nx: Katamari sub_824D9D08, N&B sub_821FB880; GW,NB
+BANJO_RENUT_HOOK(sub_82236348, D3DDevice_DrawVertices_hook);  // pacman-nx: Katamari sub_824D9D08, N&B sub_821FB880; GW,NB (base sub_821C1538)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824DA0F0, D3DDevice_DrawIndexedVertices_hook);  // pacman-nx: Katamari sub_824DA0F0, N&B sub_8263F358; not in this game: D3DDevice_DrawIndexedVertices: not linked (0.72 is DrawVertices, sub_821C1538, placed by t
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_824DA9C0, D3DDevice_DrawIndexedTessellatedVertices_hook);  // pacman-nx: Katamari sub_824DA9C0, N&B sub_821FF958; not in this game: D3DDevice_DrawIndexedTessellatedVertices: not linked
-BANJO_RENUT_HOOK(sub_821C14F0, D3DDevice_DrawVerticesUP_hook);  // pacman-nx: Katamari sub_824D9758, N&B sub_821FD698; NB
+BANJO_RENUT_HOOK(sub_82236300, D3DDevice_DrawVerticesUP_hook);  // pacman-nx: Katamari sub_824D9758, N&B sub_821FD698; NB (base sub_821C14F0)
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_8263F2B8, D3DDevice_DrawIndexedVerticesUP_hook);  // pacman-nx: N&B sub_8263F2B8; not in this game: D3DDevice_DrawIndexedVerticesUP: not linked
-BANJO_RENUT_HOOK(sub_821C1058, D3DDevice_BeginVertices_hook);  // pacman-nx: Katamari sub_824D92B8, N&B sub_821FBD30; NB
-BANJO_RENUT_HOOK(sub_821C64F0, D3DDevice_ClearF_hook);  // pacman-nx: Katamari sub_824F3248, N&B sub_8224F110; GW,NB
-BANJO_RENUT_HOOK(sub_821C6618, D3DDevice_Clear_hook);  // pacman-nx: Katamari sub_824F3370, N&B sub_8224F238; GW
-BANJO_RENUT_HOOK(sub_821C6EA8, D3DDevice_Resolve_hook);  // pacman-nx: Katamari sub_824F12B8, N&B sub_821FC7A0; GW
+BANJO_RENUT_HOOK(sub_82235E40, D3DDevice_BeginVertices_hook);  // pacman-nx: Katamari sub_824D92B8, N&B sub_821FBD30; NB (base sub_821C1058)
+BANJO_RENUT_HOOK(sub_8223BE58, D3DDevice_ClearF_hook);  // pacman-nx: Katamari sub_824F3248, N&B sub_8224F110; GW,NB (base sub_821C64F0)
+BANJO_RENUT_HOOK(sub_8223BF90, D3DDevice_Clear_hook);  // pacman-nx: Katamari sub_824F3370, N&B sub_8224F238; GW (base sub_821C6618)
+BANJO_RENUT_HOOK(sub_8223DBD8, D3DDevice_Resolve_hook);  // pacman-nx: Katamari sub_824F12B8, N&B sub_821FC7A0; GW (base sub_821C6EA8)
 BANJO_RENUT_UNHOOKED_HOOK_SHARED(unlinked_82246798, D3DDevice_BeginTiling_hook);  // pacman-nx: N&B sub_82246798; not in this game: D3DDevice_BeginTiling: not linked: the game does not tile
 BANJO_RENUT_UNHOOKED_HOOK(unlinked_821E17C0, D3DDevice_EndTiling_hook);  // pacman-nx: N&B sub_821E17C0; not in this game: D3DDevice_EndTiling: not linked
 // katamari-nx (2026-10-30): XDK 2.0.5632's BeginTiling (sub_824EFBC8: it stores the count at TileCount +0x31C4 and
@@ -629,8 +629,8 @@ BANJO_RENUT_UNHOOKED_HOOK_RAW(unlinked_824F0150) {  // pacman-nx: Katamari sub_8
   ctx.r3.u64 = EndTilingImpl(ctx.r3.u32, true, ctx.r4.u32, ctx.r5.u32, ctx.r6.u32, ctx.r7.u32, float(ctx.f1.f64),
                              ctx.r9.u32, ctx.r10.u32);
 }
-BANJO_RENUT_UNHOOKED_HOOK_SHARED(unlinked_82237FE8, D3DDevice_BeginExport_hook);  // pacman-nx: N&B sub_82237FE8; not in this game: D3DDevice_BeginExport: only reached from Swap's own path (sub_821D2190), which Renut's Swa
-BANJO_RENUT_UNHOOKED_HOOK_SHARED(unlinked_82237D80, D3DDevice_EndExport_hook);  // pacman-nx: N&B sub_82237D80; not in this game: D3DDevice_EndExport: the same path; unhooked with its pair
-BANJO_RENUT_HOOK(sub_821C52A8, D3DDevice_Present_hook);  // pacman-nx: Katamari sub_824E9428, N&B sub_826352B8; GW
-BANJO_RENUT_HOOK(sub_821BAFD8, D3DDevice_SetVertexShader_hook);  // pacman-nx: Katamari sub_824D4930, N&B sub_821F90D8; GW,NB
-BANJO_RENUT_HOOK(sub_821BAE18, D3DDevice_SetPixelShader_hook);  // pacman-nx: Katamari sub_824D4630, N&B sub_821F58A8; GW,NB
+BANJO_RENUT_HOOK_SHARED(sub_82235278, D3DDevice_BeginExport_hook);  // pacman-nx: N&B sub_82237FE8; not in this game: D3DDevice_BeginExport: only reached from Swap's own path (sub_821D2190), which Renut's Swa (tu3: the update links it; Peggle 2 and NiGHTS place it here)
+BANJO_RENUT_HOOK_SHARED(sub_82235370, D3DDevice_EndExport_hook);  // pacman-nx: N&B sub_82237D80; not in this game: D3DDevice_EndExport: the same path; unhooked with its pair (tu3: the update links it; Peggle 2 and NiGHTS place it here)
+BANJO_RENUT_HOOK(sub_8223AC00, D3DDevice_Present_hook);  // pacman-nx: Katamari sub_824E9428, N&B sub_826352B8; GW (base sub_821C52A8)
+BANJO_RENUT_HOOK(sub_8222FB10, D3DDevice_SetVertexShader_hook);  // pacman-nx: Katamari sub_824D4930, N&B sub_821F90D8; GW,NB (base sub_821BAFD8)
+BANJO_RENUT_HOOK(sub_8222F908, D3DDevice_SetPixelShader_hook);  // pacman-nx: Katamari sub_824D4630, N&B sub_821F58A8; GW,NB (base sub_821BAE18)

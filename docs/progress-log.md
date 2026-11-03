@@ -46,3 +46,10 @@ The work in order, newest last. Times are AEST, 2026-11-02 unless noted.
 | 11:08 | Two pacing fixes at the user's go-ahead: the frame after a hitch waits for the next refresh, and a drain that worked resets the retry wait to 5 s. Built, not run: the user tests on the console. |
 | 11:22 | Fourth console run: input -> display 16.6 ms at 60 fps in gameplay, down from 64 ms; 0 late images for over 2 minutes. |
 | 14:36 | 1.0.0: LTO NRO, the user's icon, 1080 lines docked, only the player's options in the toml, logging off, `language`. Web installer from katamari-nx-installer. Clean install from its zip passes in Ryujinx. Published at the user's request. |
+| 16:40 | The user: the game was missing title update 3. The base XEX never asks for DLC, so the DLC skins noted on 2026-11-02 were the base game's. |
+| 17:30 | TU3 applied (v0.0.3.2, XDK 2.0.21250): new game folder, functions mapped, 323 hooks and the device layout moved, 5,428 of 5,649 hot copies kept (99.6 % of the console's samples). |
+| 18:45 | First native PC run on TU3: stable, DLC mounted, 4 startup shaders captured, black picture. |
+| 18:53 | Black picture: three guest table addresses left at the base's. Fixed: DX+ title, menu and gameplay draw. |
+| 19:05 | The Achievements & Medals list drew over its panel: user clip planes never applied. Compared with the emulated GPU, applied as a scissor. |
+| 19:37 | Everyday TU3 NRO 62.2 MB, 0 veneers. The user: go straight to LTO. |
+| 20:05 | TU3 LTO NRO 63.3 MB, 25 minutes, 0 veneers. SD folder for the user's console test; it has not run. |

@@ -20,8 +20,9 @@ first console run. That costs some speed, so judge how the game plays with renut
 Install
 -------
 1. Copy COPY_TO_SD_switch_pacman-nx to sdmc:/switch/pacman-nx/ on the SD card.
-2. Put your extracted game in game_root/ (on this PC: D:\pacman\game) and, if you want the DLC skins, the AllinOnePack
-   package in dlc/ (D:\pacman\PAC MAN CE DX (1)\PAC MAN CE DX\58410A8C\00000002\AllinOnePack). The package holds neither.
+2. Put your extracted game in game_root/ with Title Update 3's default.xexp (on this PC: D:\pacman\game_tu3), the update's
+   other files in update/ (D:\pacman\tu3_update) and, if you want the DLC, the AllinOnePack package in dlc/
+   (D:\pacman\PAC MAN CE DX (1)\PAC MAN CE DX\58410A8C\00000002\AllinOnePack). The package holds none of them.
 3. Copy the toml you want over pacman.toml. That is the file the port reads: a renut.toml beside it is not read. Without a
    pacman.toml the NRO uses its built-in settings, which match renut.toml's picture and speed keys.
 
@@ -41,7 +42,8 @@ What to test first
    when the PC is otherwise idle. One long emulator run fell to 0.02 fps at timer 3:12 and never recovered; later runs passed
    that point, and other sessions were loading the PC. A frame rate that falls and stays down on the console would be news:
    please send the log.
-4. Changing Visuals in the start menu, the DLC skins (Types E to J) included. Each change loads that skin's PNGs: a pause is
+4. Changing Visuals in the start menu. (The note here that the DLC's skins showed in the original game was wrong: only the
+   title update's game uses the DLC; see "Title update 3" in docs/pacman-notes.md.) Each change loads that skin's PNGs: a pause is
    expected, and how long it takes on the console is worth noting. In the emulator it stalled for up to 10 s with the guard on.
 5. Sound: the music and effects in play. The emulator cannot judge sound quality or latency.
 6. Leaderboards and other Xbox LIVE items answer "You must be signed into a gamer profile": that is expected.

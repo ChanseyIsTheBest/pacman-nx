@@ -1,6 +1,6 @@
 # Building pacman-nx
 
-You need your own copy of the game: the code generator and the shader tools read it. Nothing made from it is committed
+You need your own copy of the game and its Title Update 3: the code generator and the shader tools read them. Nothing made from it is committed
 (`.gitignore`): `app/assets`, `app/generated`, `out/`, `app/out/`, `tools/switch/icon/`.
 
 ## Tools
@@ -13,10 +13,16 @@ glslangValidator from `tools/build_glslang.bat`.
 ## 1. The game
 
 ```bat
-python tools\stfs_extract.py <the LIVE package 38D034D6...> D:\pacman\game
+python tools\stfs_extract.py <the LIVE package 38D034D6...> D:\pacman\game_tu3
+python tools\stfs_extract.py <the title update tu00000002_00000000> D:\pacman\tu3_update
+move D:\pacman\tu3_update\default.xexp D:\pacman\game_tu3\
 python tools\stfs_extract.py <AllinOnePack> D:\pacman\dlc
-mklink /J app\assets D:\pacman\game
+mklink /J app\assets D:\pacman\game_tu3
 ```
+
+The code generator applies `default.xexp` when it sits beside `default.xex`, and the runtime does the same at start. The
+update's other files stay in a folder of their own, `update/` next to the program (on the PC, `--update_data_root`): the game
+opens a file from its DLC mounts, then `UPDATE:\`, then `game:\`.
 
 Files git leaves out of a fresh copy of the SDK, which its CMake needs: FFmpeg's generated `config.h`, `libavutil/avconfig.h`,
 `libavutil/ffversion.h` and the `*_list.c` files, and XenosRecomp's `thirdparty/dxc-bin`. Generate them, or copy them from a

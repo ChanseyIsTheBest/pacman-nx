@@ -1,5 +1,5 @@
-pacman-nx: PAC-MAN Championship Edition DX (Xbox 360, title 58410A8C) on the Nintendo Switch
-============================================================================================
+pacman-nx: PAC-MAN Championship Edition DX+ (Xbox 360, title 58410A8C, Title Update 3) on the Nintendo Switch
+=============================================================================================================
 
 A ReXGlue static recompilation, built from katamari-nx (Beautiful Katamari's port) and through it banjo-nx (Banjo-Kazooie:
 Nuts & Bolts' port): the SDK fork, the post-codegen CPU passes and reNut's Direct3D-level renderer on plume's deko3d back end
@@ -14,8 +14,9 @@ SD card layout
 --------------
 sdmc:/switch/pacman-nx/pacman-nx.nro      the program
 sdmc:/switch/pacman-nx/pacman.toml        settings (copy one of the tomls below over it)
-sdmc:/switch/pacman-nx/game_root/         the game's files: default.xex, data/, geui/ and the rest
-                                          (extract your LIVE package with tools/stfs_extract.py)
+sdmc:/switch/pacman-nx/game_root/         the game's files: default.xex, data/, geui/ and the rest, and Title Update 3's
+                                          default.xexp (extract your LIVE packages with tools/stfs_extract.py)
+sdmc:/switch/pacman-nx/update/            Title Update 3's other files (the game opens them as UPDATE:\)
 sdmc:/switch/pacman-nx/dlc/               the DLC package AllinOnePack (an Xbox 360 LIVE file, content type 2), optional.
                                           It holds the extra skins, game data and sound banks, no code. Installed at the
                                           first start into sdmc:/switch/pacman-nx/renut/ (dlc/installed.txt lists it).

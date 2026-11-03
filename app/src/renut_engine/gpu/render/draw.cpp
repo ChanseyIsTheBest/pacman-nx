@@ -74,6 +74,10 @@ REXCVAR_DEFINE_STRING(banjo_renut_diag_blend_skip_exclude, "", "Banjo/Renut",
                       "Diagnostic: pixel shader hashes (hex, comma separated) banjo_gpu_blend_skip leaves alone");
 
 // banjo-nx (2026-10-20, from sa2-nx): see DrawStateLocked.
+REXCVAR_DEFINE_BOOL(pacman_user_clip_scissor, true, "PacMan/Graphics",
+                    "pacman-nx (2026-11-03, title update 3): the game's user clip planes as a scissor. Its interface clips scrolling lists "
+                    "with four axis-aligned planes (sub_82159C60, the Achievements & Medals panel); Renut stored them and never applied them. "
+                    "No shader change. Off: the lists draw over what is around them");
 REXCVAR_DEFINE_BOOL(banjo_renut_chain_reuse, true, "Banjo/Enhancements",
                     "ON again since 2026-10-26 (incremental draw state; in-run A/B target 20 turns it off for a half): "
                     "its checks are one AND each, nothing is copied for a texture miss, and the replayed draws give "
@@ -1874,6 +1878,12 @@ bool PredicatedTile(const GuestDevice &device, ClearRect &rect) {
 
 ViewportState ComputeViewportSlow(const GuestDevice &device, const Targets &t);
 
+// pacman-nx (2026-11-03, pacman_user_clip_scissor): the user clip planes this draw has on (PA_CL_CLIP_CNTL bits 0-5).
+inline u32 UserClipBits(const d3d::Device &dev) {
+  static const bool on = REXCVAR_GET(pacman_user_clip_scissor);
+  return on ? u32(dev.m_ControlPacket.ClipControl) & 0x3Fu : 0u;
+}
+
 // banjo-nx (2026-10-19, render-thread proposal 8): the last draw's viewport again when everything ComputeViewportSlow
 // reads is the same: the device words (VteControl, the six viewport values, ModeControl, WindowOffset, the window
 // scissor, 0x29C0), the predicated tile (worked out first: it reads the replay's predication and the tiles), the
@@ -1883,7 +1893,7 @@ ViewportState ComputeViewport(const GuestDevice &device, const Targets &t) {
   const d3d::ValuesPacket &v = dev.m_ValuesPacket;
   ClearRect tile{};
   const bool one_tile = PredicatedTile(device, tile);
-  u32 key[24];
+  u32 key[48];  // pacman-nx: 24-47 the user clip planes
   key[0] = dev.m_ControlPacket.VteControl;
   std::memcpy(&key[1], &v.VportXScale, 4);
   std::memcpy(&key[2], &v.VportXOffset, 4);
@@ -1906,9 +1916,15 @@ ViewportState ComputeViewport(const GuestDevice &device, const Targets &t) {
   key[19] = t.guest_width;
   key[20] = t.guest_height;
   key[21] = t.scale.code;
-  key[22] = 0;
+  // pacman-nx (pacman_user_clip_scissor): the planes only when one is on, so a game that uses none pays one read.
+  const u32 clip_bits = UserClipBits(dev);
+  key[22] = clip_bits;
+  if (clip_bits)
+    std::memcpy(&key[24], dev.m_ClipPlanes, sizeof(dev.m_ClipPlanes));
+  else
+    std::memset(&key[24], 0, sizeof(dev.m_ClipPlanes));
   key[23] = 0;
-  static u32 last_key[24];
+  static u32 last_key[48];
   static ViewportState last;
   static bool valid = false;
   if (valid && std::memcmp(key, last_key, sizeof(key)) == 0)
@@ -2018,6 +2034,37 @@ ViewportState ComputeViewportSlow(const GuestDevice &device, const Targets &t) {
     sy1 = std::max(sy1, tile_rect.y1);
     sx2 = std::min(sx2, tile_rect.x2);
     sy2 = std::min(sy2, tile_rect.y2);
+  }
+  // pacman-nx (2026-11-03, pacman_user_clip_scissor): an axis-aligned user clip plane is a scissor edge. A plane a x + b y + c z + d w
+  // >= 0 with only a set keeps X >= -d / a (a > 0) or X <= -d / a in normalised coordinates, and the same on y; the viewport maps that
+  // to window coordinates. A pixel is kept when its centre is inside (at i, or i + 0.5 with PA_SU_VTX_CNTL.pix_center). Any other plane
+  // would need the shaders: the log says so once.
+  if (const u32 clip_bits = UserClipBits(dev)) {
+    const float centre = (device.U32(0x29C0) & 1) ? 0.5f : 0.0f;
+    for (u32 i = 0; i < 6; ++i) {
+      if (!((clip_bits >> i) & 1))
+        continue;
+      const float a = float(dev.m_ClipPlanes[i][0]), b = float(dev.m_ClipPlanes[i][1]);
+      const float c = float(dev.m_ClipPlanes[i][2]), d = float(dev.m_ClipPlanes[i][3]);
+      const bool on_x = a != 0.0f && b == 0.0f && c == 0.0f, on_y = b != 0.0f && a == 0.0f && c == 0.0f;
+      if (!on_x && !on_y) {
+        static bool said = false;
+        if (!said) {
+          said = true;
+          RGPU_WARN("[renut] user clip plane {} ({},{},{},{}) is not axis-aligned: not applied", i, a, b, c, d);
+        }
+        continue;
+      }
+      const float normal = on_x ? a : b, scale = on_x ? xs : ys;
+      const float edge = std::clamp((on_x ? xo : yo) + scale * (-d / normal) - centre, -32768.0f, 32767.0f);
+      if ((normal > 0.0f) == (scale > 0.0f)) {  // the kept side is the larger pixel numbers
+        int32_t &first = on_x ? sx1 : sy1;
+        first = std::max(first, int32_t(std::ceil(edge)));
+      } else {
+        int32_t &end = on_x ? sx2 : sy2;
+        end = std::min(end, int32_t(std::floor(edge)) + 1);
+      }
+    }
   }
   sx1 = std::clamp(sx1, 0, int32_t(t.width));
   sy1 = std::clamp(sy1, 0, int32_t(t.height));
@@ -6975,7 +7022,7 @@ VertexDeclarationRecord &NoDeclaration() {
 // Its D3DVERTEXELEMENT9s (12 bytes each, ended by D3DDECL_END) are at +52 of the declaration, inside the device
 // snapshot, so a draw reads them from its own snapshot; at most 15 before the device's next field (+0x3088). One record
 // per distinct element list; each new list is logged once with its elements, to check the layout.
-constexpr u32 kDeviceDeclarationOffset = 0x3050;  // pacman-nx: sub_821CF3D0 `stw r11,12368(r31)`
+constexpr u32 kDeviceDeclarationOffset = 0x3118;  // pacman-nx: sub_821CF3D0 `stw r11,12368(r31)`
 constexpr u32 kDeclarationElementsOffset = 52;
 constexpr u32 kDeviceDeclarationMaxElements = 15;
 
@@ -7606,7 +7653,7 @@ std::unordered_map<const void *, std::unordered_map<uint64_t, u32>> g_census_lef
 constexpr u32 kCensusFetchBegin = u32(offsetof(d3d::Device, m_Constants));
 constexpr u32 kCensusFloatBegin = kCensusFetchBegin + u32(offsetof(d3d::Constants, VertexShaderF));
 constexpr u32 kCensusTailBegin = kCensusFetchBegin + u32(offsetof(d3d::Constants, VertexShaderB));
-static_assert(kCensusTailBegin < 10880 && 11904 < d3d::kDeviceSnapshotSize);  // katamari-nx: a chunk boundary (backend/queued.cpp)
+static_assert(kCensusTailBegin < 11008 && 12224 < d3d::kDeviceSnapshotSize);  // pacman-nx (tu3): XDK 21250  // katamari-nx: a chunk boundary (backend/queued.cpp)
 
 bool CensusCompared(u32 k) {  // g_census[k + 1] is frame N-(k+1)
   return g_census[0].frame != UINT64_MAX && g_census[k + 1].frame != UINT64_MAX &&
@@ -7660,8 +7707,8 @@ void CensusDraw(const u8 *device_state, const DrawCall &call, const Targets &tar
   CensusFrame &cur = g_census[0];
   // The state key.
   uint64_t state = XXH3_64bits(device_state + kCensusFetchBegin, kCensusFloatBegin - kCensusFetchBegin);
-  state = XXH3_64bits_withSeed(device_state + kCensusTailBegin, 10880 - kCensusTailBegin, state);
-  state = XXH3_64bits_withSeed(device_state + 11904, d3d::kDeviceSnapshotSize - 11904, state);  // katamari-nx: a chunk boundary (backend/queued.cpp)
+  state = XXH3_64bits_withSeed(device_state + kCensusTailBegin, 11008 - kCensusTailBegin, state);
+  state = XXH3_64bits_withSeed(device_state + 12224, d3d::kDeviceSnapshotSize - 12224, state);  // katamari-nx: a chunk boundary (backend/queued.cpp)
   const u32 call_words[6] = {call.primitive, call.start_index, call.start_vertex, call.count, u32(call.base_vertex),
                              u32(call.indexed) | u32(call.tessellation) << 1 | u32(call.up_vertices != nullptr) << 2 |
                                  u32(call.up_indices != nullptr) << 3};
@@ -8752,6 +8799,7 @@ int FastDrawLocked(const u8 *device_state, const DrawCall &call, const ReplayCon
 
   // The viewport.
   const bool viewport_inputs = (fields & (kFieldViewPackets | kField29C0 | kFieldPredication)) ||
+                               ((fields & kFieldBools) && UserClipBits(device.dev())) ||  // pacman-nx: the planes
                                f.viewport_tiles != g_tiles.size() ||
                                f.viewport_predication != g_replay_predication || targets_changed;
   if (viewport_inputs || verify) {
@@ -10196,6 +10244,7 @@ bool DrawStateLocked(const u8 *device_state, const DrawCall &call, const ReplayC
       // banjo-nx (2026-10-26, Unleashed-style step 1): what ComputeViewport reads of the device, by field (the
       // packets' 168 bytes were compared, a C library call at every draw: 3 % of the render thread on the console).
       !(chain.fields & (kFieldViewPackets | kField29C0 | kFieldPredication)) &&
+      !((chain.fields & kFieldBools) && UserClipBits(device.dev())) &&  // pacman-nx: the planes
       g_viewport_reuse.width == targets.width && g_viewport_reuse.height == targets.height &&
       g_viewport_reuse.guest_width == targets.guest_width && g_viewport_reuse.guest_height == targets.guest_height &&
       g_viewport_reuse.scale == targets.scale.code && g_viewport_reuse.tiles == g_tiles.size() &&
@@ -11830,8 +11879,8 @@ void ClearStateLocked(const u8 *device_state, u32 flags, const ClearRect *rect,
 
   // D3D clamps clears to the viewport (CDevice viewport floats at 0x3170).
   ClearRect r = rect ? *rect : ClearRect{0, 0, int32_t(targets.width), int32_t(targets.height)};
-  const float vx = device.F32(0x3218), vy = device.F32(0x321C);  // katamari-nx: 0x3170->0x3160, 0x3174->0x3164 (pacman-nx: 0x3160->0x3218, 0x3164->0x321C)
-  const float vw = device.F32(0x3220), vh = device.F32(0x3224);  // katamari-nx: 0x3178->0x3168, 0x317C->0x316C (pacman-nx: 0x3168->0x3220, 0x316C->0x3224)
+  const float vx = device.F32(0x32E0), vy = device.F32(0x32E4);  // katamari-nx: 0x3170->0x3160, 0x3174->0x3164 (pacman-nx: 0x3160->0x3218, 0x3164->0x321C) (tu3: 0x3218->0x32E0, 0x321C->0x32E4)
+  const float vw = device.F32(0x32E8), vh = device.F32(0x32EC);  // katamari-nx: 0x3178->0x3168, 0x317C->0x316C (pacman-nx: 0x3168->0x3220, 0x316C->0x3224) (tu3: 0x3220->0x32E8, 0x3224->0x32EC)
   if (vw > 0.0f && vh > 0.0f) {
     int32_t vx2 = int32_t(vx + vw), vy2 = int32_t(vy + vh);
     // A target grown for tiling: D3D bounds the viewport by the tile-sized
