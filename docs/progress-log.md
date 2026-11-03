@@ -53,3 +53,4 @@ The work in order, newest last. Times are AEST, 2026-11-02 unless noted.
 | 19:05 | The Achievements & Medals list drew over its panel: user clip planes never applied. Compared with the emulated GPU, applied as a scissor. |
 | 19:37 | Everyday TU3 NRO 62.2 MB, 0 veneers. The user: go straight to LTO. |
 | 20:05 | TU3 LTO NRO 63.3 MB, 25 minutes, 0 veneers. SD folder for the user's console test; it has not run. |
+| 20:35 | The user: it works perfectly. The NRO replaces 1.0.0's on the release, the source and the installer (now with the title update, from guwange-nx-installer) are public. |
