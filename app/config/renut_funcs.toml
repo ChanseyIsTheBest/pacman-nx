@@ -1,0 +1,6 @@
+# pacman-nx: named functions and function boundaries of PAC-MAN CE DX (docs/pacman-notes.md, "Code generation").
+[functions]
+# First boot (2026-11-02): "Call to invalid or unregistered function at guest address 0x82306978": a comparator passed to a
+# sort (`lis r11,0x8230; addi r6,r11,27000` at 0x8231FC84), reached only through that pointer. The generator had taken its tail
+# 0x823069EC (`subfc`, reads r11) for a function. Declared over the whole body (tools/wide_pointer_scan.py: the only real hit).
+"0x82306978" = { end = 0x82306A00 }

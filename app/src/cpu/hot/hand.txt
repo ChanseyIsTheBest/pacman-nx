@@ -1,0 +1,7 @@
+# pacman-nx: guest functions with a HAND-WRITTEN native (app/src/cpu/hot/banjo_hand_natives.h, namespace
+# banjo::hand::n_<id>). Only from a console profile, past the gate of docs/optimising-functions.md, with the evidence
+# in the line's comment: profile (build), scene, thread, share, what the samples showed.
+#
+#   <address or generated name> [id=<namespace suffix>] [exact=<registers>]   # evidence
+#
+# None yet: no console profile of this game exists.

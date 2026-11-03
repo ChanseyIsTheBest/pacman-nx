@@ -1,0 +1,60 @@
+# pacman-nx (2026-11-02): Renut's hooks placed by hand in PAC-MAN CE DX (XDK 2.0.11164), read by
+# tools/renut_hook_map_pacman.py before the routes. One line per hook: the address on the hook line (Beautiful Katamari's,
+# or N&B's for a hook Katamari left unhooked), this game's address or - (leave unhooked), the evidence.
+#
+# Device creation. The device init is sub_821CFB40; Direct3D_CreateDevice sub_821C2008 allocates 0x5F00 (`li r3,24320`).
+824DE218  821B8440  D3DDevice_SetGammaRamp: 0.98 against N&B's; calls sub_821CA1F0, the pair of the sub_82646EC8 N&B's SetGammaRamp calls; first of the two at the end of InitializePresentationParameters, in N&B's order
+824DE2F8  821B8510  D3DDevice_SetPWLGamma: 0.98; calls sub_821CA288, the pair of the sub_82646F60 N&B's SetPWLGamma calls
+824ED278  821D7450  D3D_XenonGpu_Initialize: the device init's call right before InitializePresentationParameters, as Katamari's sub_824E18D0 has it
+824E11A0  821CF3D0  D3D_InitializeApiState: 0.94 against Katamari's, same size (154); reads the state tables 0x8246A250 / 0x8246A710; called by the device init after InitializePresentationParameters
+824E1408  821CF638  D3D_InitializePresentationParameters: CreateTexture, CreateSurface twice, SetRenderTarget, SetDepthStencilSurface, then the two gamma calls: Katamari's sequence
+# Not linked by this game (no function of the shape, no caller of their helpers; Bangai-O's XDK 20209 notes list the same ones)
+824E0590  -  D3DDevice_InsertCallback: best 0.70, unrelated game code
+824D0430  -  D3DDevice_AcquireThreadOwnership: best 0.82, unrelated game code
+824D0470  -  D3DDevice_ReleaseThreadOwnership: a 4-instruction shape, no D3D-range match
+82641498  -  D3DDevice_GetDisplayMode: no match
+82BC8078  -  D3D_IsFusion: no match
+8255A200  -  D3D_CDevice_BeginRingManual: no match
+82640818  -  D3DDevice_BeginCommandBuffer: no match: this game has no command-buffer recorder
+82640DE8  -  D3DDevice_EndCommandBuffer: no match
+821F1A78  -  D3DDevice_RunCommandBuffer: no match
+# Draws: only DrawVertices, DrawVerticesUP and BeginVertices are linked. The helpers sub_821CD058, sub_821CD1D8, sub_821CD330 have only those callers.
+824DA0F0  -  D3DDevice_DrawIndexedVertices: not linked (0.72 is DrawVertices, sub_821C1538, placed by two routes)
+824DA9C0  -  D3DDevice_DrawIndexedTessellatedVertices: not linked
+8263F2B8  -  D3DDevice_DrawIndexedVerticesUP: not linked
+82246798  -  D3DDevice_BeginTiling: not linked: the game does not tile
+821E17C0  -  D3DDevice_EndTiling: not linked
+824EFBC8  -  BeginTiling (Katamari's raw hook): not linked
+824F0150  -  EndTiling (Katamari's raw hook): not linked
+82237FE8  -  D3DDevice_BeginExport: only reached from Swap's own path (sub_821D2190), which Renut's Swap hook replaces
+82237D80  -  D3DDevice_EndExport: the same path; unhooked with its pair
+8263ED90  821C1048  D3DDevice_EndIndexedVertices: the same three instructions as N&B's: `lwz r11,13652(r3); stw r11,48(r3); blr` (Ring = VerticesRingEnd, 0x3554); called once, after BeginVertices' caller
+# Resources
+824DB448  821BFDA8  D3D_UnlockResource: 0.72 against N&B's, 84 instructions; the tail of VertexBuffer_Unlock sub_821C01B8 and of SurfaceUnlockRect sub_821C2230
+824DB7B0  821C01B8  D3DVertexBuffer_Unlock: `lwz r11,24(r3); li r5,0; rlwinm r4,r11,0,0,29; b sub_821BFDA8`, exact shape
+824DB210  821C0C30  D3D_LockResource: reads the VdGlobalDevice record 0x82000500 (0xFFCAE000, as Katamari's and N&B's) repeatedly; called by VertexBuffer_Lock sub_821C0FF8 and sub_821C3478
+824D1918  821C3478  D3D_LockSurface: called by Lock2DSurface sub_821C3550, Lock3DSurface sub_821C35E0 and sub_821C3C08; calls LockResource and GetSubresourceLayout
+824D1A70  821C35E0  D3D_Lock3DSurface: 0.88 against N&B's
+824DB870  -  D3DIndexBuffer_Lock: not linked: this game makes no index buffers
+824DB7C0  -  D3DDevice_CreateIndexBuffer: not linked (0.68 is CreateVertexBuffer)
+824DB8B8  -  D3DConstantBuffer_Unlock: not linked
+824D2148  -  D3DLineTexture_LockRect: 1.00 only against unrelated 6-instruction thunks
+8263E958  -  D3DArrayTexture_LockRect: a thunk, not identifiable; the guest's own path stays
+8263EA48  -  D3D_Lock3DSurface_Thunk: as above
+8263E960  -  D3DArrayTexture_GetArraySize: 1.00 is GetLevelCount sub_821C3BF8 (same shape)
+8263FBD0  -  D3DVertexShader_Bind: no match
+# State
+824E0518  821C9650  D3DDevice_BlockUntilIdle: Katamari's 30 instructions, reordered: BeginRing check, `li r10,1480`, `lis r9,2`, BlockOnFence with +10908, the wait on +11012
+824D4470  821BAC20  D3DDevice_SetVertexShaderConstantB: `addi r11,r11,2528` (the vertex bool block), called 3 times by the game
+824D44D0  821BAC80  D3DDevice_SetPixelShaderConstantB: 2532, as N&B's sub_82237208
+826374B0  821BACE0  D3DDevice_SetVertexShaderConstantI: `addi r10,r4,2535` as N&B's
+82637500  821BAD38  D3DDevice_SetPixelShaderConstantI: 2551
+824A3D40  -  D3DDevice_SetTexture_Inline: no match (an inline form in N&B)
+826411C0  -  D3DDevice_SetCommandBufferPredication: no command buffers; SetPredication sub_821CFFB0 is hooked
+82634B90  -  D3D_InvalidateConstants: ambiguous (0.86 / 0.81 in sub_821D0878 / sub_821D0608), left to the guest as in Katamari
+82636EC8  -  D3DDevice_SetRenderTarget_Thunk: no match; the game calls SetRenderTarget directly
+82636ED0  -  D3DDevice_GetRenderTarget: reads the device, left to the guest
+82636F10  -  D3DDevice_GetDepthStencilSurface: as above
+82636E40  -  D3DDevice_GetStreamSource: as above
+82244B18  -  D3DDevice_GetViewport: as above
+82637138  -  D3DDevice_SetVertexFetchConstant: no match

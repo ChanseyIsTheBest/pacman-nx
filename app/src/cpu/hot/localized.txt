@@ -1,0 +1,2 @@
+# pacman-nx: the localized native copies chosen by hand (tools/localize_native.py --list). Empty: the bulk list holds
+# this game's copies (tools/switch_hot_bulk.py --merge, docs/optimising-functions.md).

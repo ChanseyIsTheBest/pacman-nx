@@ -1,0 +1,1 @@
+# pacman-nx: empty until this game's console profile

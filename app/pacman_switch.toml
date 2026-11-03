@@ -1,0 +1,35 @@
+# PAC-MAN Championship Edition DX for the Switch: your options. Every other setting is built into the NRO.
+# Delete this file and the game writes it again at the next start.
+
+# The game's language: "auto" follows the Switch's language; or english, japanese, french, german, spanish, italian,
+# schinese (Simplified Chinese), tchinese (Traditional Chinese).
+language = "auto"
+
+# Face buttons by position, as on an Xbox pad (bottom = A). false = by letter.
+input_xbox_layout = true
+
+# Single Joy-Cons are held sideways, one per player.
+input_joycon_sideways = true
+# With it, a single Joy-Con's stick is turned for the sideways grip.
+input_joycon_sideways_stick = true
+
+# Button mapping: the Switch buttons that press each Xbox button. Empty = default.
+# Buttons: A B X Y L R ZL ZR PLUS MINUS LSTICK RSTICK UP DOWN LEFT RIGHT SL SR NONE. Example: a = "B, ZR"
+
+[input_p1]
+a = ""
+b = ""
+x = ""
+y = ""
+lb = ""
+rb = ""
+lt = ""
+rt = ""
+start = ""
+back = ""
+ls = ""
+rs = ""
+up = ""
+down = ""
+left = ""
+right = ""
