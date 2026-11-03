@@ -600,7 +600,7 @@ if(REXGLUE_PLATFORM_SWITCH)
     endif()
     # katamari-nx (2026-11-02, the user's request): version 1.0.0, author ChanseyIsTheBest, the user's icon (the cover art).
     rexglue_switch_add_nro(renut
-        NAME "PAC-MAN Championship Edition DX"
+        NAME "PAC-MAN Championship Edition DX+"
         AUTHOR "ChanseyIsTheBest"
         VERSION "1.0.0"
         ${RENUT_ICON_ARG})
