@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <rex/filesystem.h>
@@ -26,11 +27,46 @@ class HostPathEntry : public Entry {
                 const std::filesystem::path& host_path);
   ~HostPathEntry() override;
 
+  /*
+   * Port 264 (culdcept-nx's two-size index of 2026-11-20, for every kind): what the full scan decided for a file, as
+   * the VFS index keeps it. An entry rebuilt from the index (its listing is compared with the SD's) is made from it,
+   * with no stat of a plain NAME beside a stand-in and no read of the stand-in's header.
+   */
+  static constexpr uint8_t kIndexLz4Blocks = 1, kIndexXmo = 2, kIndexXmop = 4, kIndexOpusPcm = 8, kIndexSfdHevc = 16;
+  struct IndexHint {
+    uint8_t kinds = 0;       // the kIndex* flags of a stand-in; 0 for a plain file or a directory
+    uint64_t size = 0;       // a stand-in's size as the guest sees it (the size of the file it stands for)
+    std::string guest_name;  // a stand-in's name as the guest sees it (its host name without the suffixes)
+  };
   static HostPathEntry* Create(Device* device, Entry* parent,
                                const std::filesystem::path& full_path,
-                               rex::filesystem::FileInfo file_info);
+                               rex::filesystem::FileInfo file_info, const IndexHint* hint = nullptr);
 
   const std::filesystem::path& host_path() const { return host_path_; }
+  // rr6-nx (2026-11-10): host_path_ is an LZ4 block file (NAME.lz4b, rex/filesystem/lz4_blocks.h) shown as NAME with
+  // the size of the file it holds; opened through OpenLz4Blocks, never mapped or written.
+  bool lz4_blocks() const { return lz4_blocks_; }
+  // culdcept-nx (2026-11-20) / sasrt-nx (2026-11-21): host_path_ is a NAME.xmo (an XMA file whose frames are Opus)
+  // or a NAME.xmop / NAME.xmop.lz4b (a Wwise package whose XMA2 sounds are Opus; rex/filesystem/xmo.h), shown as NAME
+  // with that file's size; opened through OpenXmo / OpenXmop, never mapped or written.
+  bool xmo() const { return xmo_; }
+  bool xmop() const { return xmop_; }
+  // rr6-nx (2026-11-21): host_path_ is a NAME.opcm (rex/filesystem/opus_pcm.h: a file whose PCM samples are Opus),
+  // shown as NAME with that file's size; opened through OpenOpusPcm, never mapped or written.
+  bool opus_pcm() const { return opus_pcm_; }
+  // rr6-nx (2026-11-21): host_path_ is a NAME.hevc (rex/filesystem/sfd_hevc.h: a Sofdec movie whose pictures are
+  // H.265), shown as NAME with that file's size; opened through OpenSfdHevc, never mapped or written.
+  bool sfd_hevc() const { return sfd_hevc_; }
+  // Any of them: the guest's file is made from the host's one (read only, not mapped, its size the one it stands for).
+  bool packed() const { return lz4_blocks_ || xmo_ || xmop_ || opus_pcm_ || sfd_hevc_; }
+  // Port 264: those flags as IndexHint's kinds.
+  uint8_t index_kinds() const {
+    return uint8_t((lz4_blocks_ ? kIndexLz4Blocks : 0) | (xmo_ ? kIndexXmo : 0) | (xmop_ ? kIndexXmop : 0) |
+                   (opus_pcm_ ? kIndexOpusPcm : 0) | (sfd_hevc_ ? kIndexSfdHevc : 0));
+  }
+  // Port 264: the file's size on the SD (a stand-in's own size, not the size it stands for), which the VFS index
+  // compares with the SD's listing.
+  uint64_t disk_size() const { return disk_size_; }
 
   /*
    * "All the children of this directory are already known."
@@ -53,7 +89,18 @@ class HostPathEntry : public Entry {
   X_STATUS Open(uint32_t desired_access, File** out_file) override;
   bool Truncate() override;
 
-  bool can_map() const override { return true; }
+  /*
+   * culdcept-nx (2026-11-20, filesystem_keep_open): the host handle of a read-only file on a read-only
+   * device, kept open after the guest closes it so the next open of the same file reuses it. On the
+   * Switch an open is three file-system requests (open, the timestamp query in fsdev_open, the close),
+   * 4-5 ms each time and over 100 ms at worst; Culdcept Saga reopens DATA00.RSP and its layouts and
+   * sound banks every few seconds on the board. The handle is stateless (pread at an offset), so a
+   * reused one reads exactly as a fresh one. Park gives the handle up (closed) when the key is off.
+   */
+  std::unique_ptr<rex::filesystem::FileHandle> TakeParked();
+  void Park(std::unique_ptr<rex::filesystem::FileHandle> handle);
+
+  bool can_map() const override { return !packed(); }
   std::unique_ptr<memory::MappedMemory> OpenMapped(memory::MappedMemory::Mode mode, size_t offset,
                                                    size_t length) override;
   void update() override;
@@ -72,6 +119,12 @@ class HostPathEntry : public Entry {
 
   std::filesystem::path host_path_;
   bool children_complete_ = false;
+  bool lz4_blocks_ = false;
+  bool xmo_ = false;
+  bool xmop_ = false;
+  bool opus_pcm_ = false;
+  bool sfd_hevc_ = false;
+  uint64_t disk_size_ = 0;
 };
 
 }  // namespace rex::filesystem

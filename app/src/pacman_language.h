@@ -7,4 +7,8 @@ namespace pacman::language {
 // Once the config is loaded, before the game starts.
 void Apply();
 
+// pacman-nx (2026-11-25): the Xbox language (XLanguage: 1 English ... ) the game is told, user_language after Apply.
+// The game menu's text follows it (game_menu.cpp, where the ultimate base asks rex::system::EffectiveLanguage).
+unsigned XLanguage();
+
 }  // namespace pacman::language

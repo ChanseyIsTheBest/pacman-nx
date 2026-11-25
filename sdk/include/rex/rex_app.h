@@ -256,6 +256,9 @@ class ReXApp : public ui::WindowedApp, public ui::WindowListener, public ui::Win
   ui::Window* window() const { return window_.get(); }
   ui::ImGuiDrawer* imgui_drawer() const { return imgui_drawer_.get(); }
   ui::ImmediateDrawer* immediate_drawer() const { return immediate_drawer_.get(); }
+  // blur-nx (2026-11-18, the ultimate base's): the config file the app reads (an app's own menu writes the player's
+  // settings into it).
+  const std::filesystem::path& config_path() const { return config_path_; }
   system::AchievementManager& achievements() const;
 
   const std::filesystem::path& game_data_root() const { return game_data_root_; }

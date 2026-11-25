@@ -54,3 +54,16 @@ The work in order, newest last. Times are AEST, 2026-11-02 unless noted.
 | 19:37 | Everyday TU3 NRO 62.2 MB, 0 veneers. The user: go straight to LTO. |
 | 20:05 | TU3 LTO NRO 63.3 MB, 25 minutes, 0 veneers. SD folder for the user's console test; it has not run. |
 | 20:35 | The user: it works perfectly. The NRO replaces 1.0.0's on the release, the source and the installer (now with the title update, from guwange-nx-installer) are public. |
+| 2026-11-25 15:20 | The user: compression, the in-game menu with the release toml's items, Achievements and P1-P4 tabs, rumble on, the DLC read in place, all from the ultimate base (read only). Ridge Racer 6 asked for its file lists. |
+| 15:45 | Measured: no videos; 14 of the 21 music tracks and most effects are xWMA, already below Opus's bitrates, so Opus could stand in for only the 9 XMA tracks (about 7 MB); packing saves 8.6 MiB (LZ4 = ZXC on these files). The audio re-encode is left to the user. |
+| 16:05 | Grafted from the base (5e318b38): the input and ImGui layers, the file system (packed files, the index, the DLC in place), the content manager, the game menu with PAC-MAN's rows. |
+| 16:10 | Installer: packing (83 files, 11.6 to 3.1 MiB) and game_root's index; the Node package checked file by file (`test/check_zip.py`). Committed on its branch `packing`, not pushed. |
+| 16:40 | First LTO builds: `config_path()` missing from the SDK's app class, then port 203's `TruncateOpenFile` at the link. Both fixed; RR6's reply: the four dialogs freed first at shutdown (port 269). |
+| 16:44 | LTO NRO 64.3 MB, 0 veneers, in `D:\pacman\builds\SD_CARD_pacman-nx_menu` with the packed game folder: for the user's console test, not run. |
+| 17:05 | The user: yes to the music's XMA as Opus. Port 259's audio hook on this port's XMA context (its own frame cache), libopus linked. |
+| 17:30 | Installer: an XACT 3 reader and the ultimate installer's .xmop writer: 8 tracks as Opus, about 4.3 MiB; every file and tag checked, the Opus at lag 0 in Node and in a browser worker. Committed on `packing`. |
+| 17:50 | LTO NRO 64.3 MB with the Opus hook, 0 veneers, in the SD folder with the Opus music: for the user's console test, not run. |
+| 18:05 | The user: yes to the DLC's music as Opus. The DLC packs to nothing, but its banks hold 75 MiB of XMA. The NRO reads a package through P.xmop (as RR6's P.opcm); the installer writes it, each sound split along the package's blocks. |
+| 18:40 | 149.0 to 134.6 MiB, every byte and tag checked, each sound's gathered packets decoded against its Opus in a browser (lag 0). |
+| 18:48 | LTO NRO with it, 0 veneers; the SD folder 421.8 MiB with the DLC (1.0.0: 447.8, plus 149 unpacked at its first start). Not run. |
+| 20:30 | 1.0.1: the 18:48 NRO with its NACP version set to 1.0.1 (one byte; sha256 bb97f548...), logging off as built in; app/CMakeLists.txt says 1.0.1 for later builds. Sent to the console over sys-ftpd-light, released with the installer. The user: the game's own Vibration option is off by default, which is why the pad did not rumble; nothing changed for it. |

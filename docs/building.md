@@ -6,8 +6,9 @@ You need your own copy of the game and its Title Update 3: the code generator an
 ## Tools
 
 Windows; LLVM clang and the Visual Studio Build Tools (CMake and Ninja) for the PC build (`tools/pc_env.bat` names the
-paths); devkitA64, libnx and deko3d from [devkitPro](https://devkitpro.org) for the Switch; Python 3 with `xxhash` and
-`Pillow`. The deko3d host tools (`out/deko3d_tools`: SPIRV-Cross and the PC uam) come from `tools/deko3d_build_tools.sh`,
+paths); devkitA64, libnx, deko3d and `switch-libopus` from [devkitPro](https://devkitpro.org) for the Switch (libopus since
+2026-11-25: the ultimate base's file system links it for its Opus stand-ins); Python 3 with `xxhash` and `Pillow` (and
+`lz4`, for the installer's `test/check_zip.py`). The deko3d host tools (`out/deko3d_tools`: SPIRV-Cross and the PC uam) come from `tools/deko3d_build_tools.sh`,
 glslangValidator from `tools/build_glslang.bat`.
 
 ## 1. The game

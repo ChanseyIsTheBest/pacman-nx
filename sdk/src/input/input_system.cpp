@@ -47,7 +47,8 @@ REXCVAR_DEFINE_STRING(input_script, "", "Input",
                       "Test automation: button presses for user 0 as 'seconds:button,...' counted from the first input "
                       "poll (buttons A B X Y START BACK UP DOWN LEFT RIGHT LB RB), each held 0.2 s, or as long as "
                       "'@seconds' after the name says; the sticks pushed all the way with LSUP LSDOWN LSLEFT LSRIGHT "
-                      "and RSUP RSDOWN RSLEFT RSRIGHT (e.g. '30:LSUP@2.5'). While set, user 0 always has a pad "
+                      "and RSUP RSDOWN RSLEFT RSRIGHT (e.g. '30:LSUP@2.5'), the triggers pulled all the way with LT RT "
+                      "(e.g. '90:RT@300'). While set, user 0 always has a pad "
                       "connected (works minimized, with no controller)")
     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_INT32(input_script_sticks, 0, "Input",
@@ -55,12 +56,36 @@ REXCVAR_DEFINE_INT32(input_script_sticks, 0, "Input",
                      "input poll, both analog sticks of user 0 wander at random (a new direction every 1.5 s, eased "
                      "between them): the left stick moves the player, the right turns the camera. 0: off")
     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
-REXCVAR_DEFINE_BOOL(input_rumble, false, "Input",
-                    "Controller vibration (off by default: controllers only get "
-                    "zero vibration). true = the game's vibration");
+// culdcept-nx (2026-11-19, a second local player for a test route: Culdcept Saga's Versus join): user 1's presses.
+REXCVAR_DEFINE_STRING(input_script_p2, "", "Input",
+                      "Test automation: as input_script, for user 1 (the second controller): while set, user 1 always "
+                      "has a pad connected")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(input_script_p3, "", "Input",
+                      "Test automation: as input_script, for user 2 (the third controller); its pad connects 2 s "
+                      "before its first press")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(input_script_p4, "", "Input",
+                      "Test automation: as input_script, for user 3 (the fourth controller); its pad connects 2 s "
+                      "before its first press")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+// renut-ultimate (2026-11-10, the user's request): on by default. The Switch driver sends the game's two motors as HD
+// rumble (the heavy one on the low band at 160 Hz, the light one on the high band at 320 Hz) to the handheld Joy-Cons,
+// a Joy-Con pair, a single Joy-Con or a Pro Controller, and only when the value changes (one hid IPC then); the PC's
+// SDL and XInput drivers pass it to the pad. Stopped when the process exits.
+REXCVAR_DEFINE_BOOL(input_rumble, true, "Input",
+                    "Controller vibration: the game's own rumble (on by default). false = controllers only get zero "
+                    "vibration");
 namespace rex::input {
 
 namespace {
+// blur-nx (2026-11-17, the Renut audit's #27, exact): the device list of a controller call kept per thread, so a call
+// copies into a vector that already has room instead of making one (GetState, SetState and the others, several times
+// a frame). DevicesForUser clears it first; none of these calls makes another while it holds the list.
+std::vector<DeviceId>& UserDeviceScratch() {
+  thread_local std::vector<DeviceId> ids;
+  return ids;
+}
 
 // Synthetic devices are parked past every physical ordinal so they cannot push
 // a real pad off guest user 0. SlotAssignment routes them by their synthetic
@@ -78,6 +103,7 @@ X_STATUS InputSystem::Setup() {
 }
 
 void InputSystem::Shutdown() {
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   // device_owners_ holds raw driver pointers.
   devices_.clear();
   device_owners_.clear();
@@ -102,6 +128,7 @@ void InputSystem::SetActiveCallback(std::function<bool()> callback) {
 }
 
 void InputSystem::SetDeviceAssignment(std::unique_ptr<DeviceAssignment> assignment) {
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   assignment_ = std::move(assignment);
   if (assignment_) {
     assignment_->OnDevicesChanged(devices_);
@@ -109,6 +136,7 @@ void InputSystem::SetDeviceAssignment(std::unique_ptr<DeviceAssignment> assignme
 }
 
 void InputSystem::RefreshDevices() {
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   /*
    * At most one enumeration every 50 ms.
    *
@@ -223,6 +251,7 @@ void InputSystem::RefreshDevices() {
 }
 
 InputDriver* InputSystem::DriverForDevice(DeviceId id) {
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   for (size_t i = 0; i < devices_.size(); i++) {
     if (devices_[i].id == id) {
       return device_owners_[i];
@@ -232,6 +261,7 @@ InputDriver* InputSystem::DriverForDevice(DeviceId id) {
 }
 
 const DeviceInfo* InputSystem::DeviceInfoFor(DeviceId id) const {
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   for (const auto& device : devices_) {
     if (device.id == id) {
       return &device;
@@ -250,13 +280,46 @@ struct ScriptedPress {
   int axis = -1;
   int16_t value = 0;
 };
+std::vector<ScriptedPress> ParseInputScript(const std::string& text);
 const std::vector<ScriptedPress>& InputScript() {
-  static const std::vector<ScriptedPress> presses = [] {
+  static const std::vector<ScriptedPress> presses = ParseInputScript(REXCVAR_GET(input_script));
+  return presses;
+}
+// culdcept-nx (2026-11-19): input_script_p2, user 1's.
+const std::vector<ScriptedPress>& InputScriptP2() {
+  static const std::vector<ScriptedPress> presses = ParseInputScript(REXCVAR_GET(input_script_p2));
+  return presses;
+}
+const std::vector<ScriptedPress>& InputScriptP3() {
+  static const std::vector<ScriptedPress> presses = ParseInputScript(REXCVAR_GET(input_script_p3));
+  return presses;
+}
+const std::vector<ScriptedPress>& InputScriptP4() {
+  static const std::vector<ScriptedPress> presses = ParseInputScript(REXCVAR_GET(input_script_p4));
+  return presses;
+}
+// User 1's, 2's or 3's script (input_script_p2 / _p3 / _p4); empty for any other user.
+const std::vector<ScriptedPress>& InputScriptOther(uint32_t user_index) {
+  static const std::vector<ScriptedPress> none;
+  return user_index == 1 ? InputScriptP2() : user_index == 2 ? InputScriptP3() : user_index == 3 ? InputScriptP4() : none;
+}
+double ScriptSeconds();
+// culdcept-nx (2026-11-19): a scripted user's pad connects 2 s before its first press (a pad switched on late).
+bool ScriptOtherConnected(uint32_t user_index) {
+  const auto& script = InputScriptOther(user_index);
+  if (script.empty()) return false;
+  double first = script.front().at;
+  for (const auto& press : script) first = std::min(first, press.at);
+  return ScriptSeconds() >= first - 2.0;
+}
+std::vector<ScriptedPress> ParseInputScript(const std::string& text) {
+  {
     std::vector<ScriptedPress> out;
-    const std::string text = REXCVAR_GET(input_script);
     size_t at = 0;
     while (at < text.size()) {
-      size_t end = text.find(',', at);
+      // Port 176 (from rehatched-nx, its commit 19bf40fc): ';' and spaces separate presses too (the cvar layer keeps a
+      // command-line string only up to its first comma, so a comma list scripted one press there).
+      size_t end = text.find_first_of(",; ", at);
       if (end == std::string::npos) end = text.size();
       const std::string item = text.substr(at, end - at);
       at = end + 1;
@@ -280,14 +343,16 @@ const std::vector<ScriptedPress>& InputScript() {
         int axis;
         int16_t value;
       } kSticks[] = {{"LSLEFT", 0, -32767}, {"LSRIGHT", 0, 32767}, {"LSDOWN", 1, -32767}, {"LSUP", 1, 32767},
-                     {"RSLEFT", 2, -32767}, {"RSRIGHT", 2, 32767}, {"RSDOWN", 3, -32767}, {"RSUP", 3, 32767}};
+                     {"RSLEFT", 2, -32767}, {"RSRIGHT", 2, 32767}, {"RSDOWN", 3, -32767}, {"RSUP", 3, 32767},
+                     // blur-nx (2026-11-11): the triggers pulled all the way (Blur accelerates with RT: the PGO run
+                     // drives through a race).
+                     {"LT", 4, 255},        {"RT", 5, 255}};
       for (const auto& stick : kSticks)
         if (name == stick.name) out.push_back({seconds, 0, hold, stick.axis, stick.value});
     }
     if (!out.empty()) REXLOG_INFO("input_script: {} presses scripted", out.size());
     return out;
-  }();
-  return presses;
+  }
 }
 // Seconds since the first input poll (the script's clock).
 double ScriptSeconds() {
@@ -324,11 +389,11 @@ void ScriptedSticks(X_INPUT_GAMEPAD& pad) {
   pad.thumb_rx = axes[2];
   pad.thumb_ry = axes[3];
 }
-// Buttons the script holds now for user 0 (the clock starts at the first poll).
-uint16_t ScriptedButtons() {
+// Buttons the script holds now for user 0 (the clock starts at the first poll); culdcept-nx: or user 1's script.
+uint16_t ScriptedButtons(const std::vector<ScriptedPress>& script = InputScript()) {
   const double now = ScriptSeconds();
   uint16_t buttons = 0;
-  for (const ScriptedPress& press : InputScript()) {
+  for (const ScriptedPress& press : script) {
     if (press.axis < 0 && now >= press.at && now < press.at + press.hold) {
       buttons |= press.buttons;
       static double logged = -1.0;
@@ -341,16 +406,18 @@ uint16_t ScriptedButtons() {
   return buttons;
 }
 // The scripted stick pushes held now (katamari-nx, 2026-11-01); true when one is.
-bool ScriptedStickPushes(X_INPUT_GAMEPAD& pad) {
+bool ScriptedStickPushes(X_INPUT_GAMEPAD& pad, const std::vector<ScriptedPress>& script = InputScript()) {
   const double now = ScriptSeconds();
   bool any = false;
-  for (const ScriptedPress& press : InputScript()) {
+  for (const ScriptedPress& press : script) {
     if (press.axis < 0 || now < press.at || now >= press.at + press.hold) continue;
     switch (press.axis) {
       case 0: pad.thumb_lx = press.value; break;
       case 1: pad.thumb_ly = press.value; break;
       case 2: pad.thumb_rx = press.value; break;
-      default: pad.thumb_ry = press.value; break;
+      case 3: pad.thumb_ry = press.value; break;
+      case 4: pad.left_trigger = uint8_t(press.value); break;  // blur-nx (2026-11-11): LT
+      default: pad.right_trigger = uint8_t(press.value); break;  // blur-nx: RT
     }
     any = true;
   }
@@ -361,7 +428,8 @@ bool ScriptedStickPushes(X_INPUT_GAMEPAD& pad) {
 X_RESULT InputSystem::GetCapabilities(uint32_t user_index, uint32_t flags,
                                       X_INPUT_CAPABILITIES* out_caps) {
   SCOPE_profile_cpu_f("hid");
-  if (out_caps && user_index == 0 && !InputScript().empty()) {  // input_script: a standard pad
+  if (out_caps && ((user_index == 0 && !InputScript().empty()) ||
+                   ScriptOtherConnected(user_index))) {  // input_script (_p2, _p3): a standard pad
     std::memset(out_caps, 0, sizeof(*out_caps));
     out_caps->type = 0x01;      // XINPUT_DEVTYPE_GAMEPAD
     out_caps->sub_type = 0x01;  // XINPUT_DEVSUBTYPE_GAMEPAD
@@ -374,8 +442,9 @@ X_RESULT InputSystem::GetCapabilities(uint32_t user_index, uint32_t flags,
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   RefreshDevices();
-  std::vector<DeviceId> ids;
+  std::vector<DeviceId>& ids = UserDeviceScratch();  // blur-nx (2026-11-17, audit #27)
   assignment_->DevicesForUser(user_index, ids);
   if (ids.empty()) {
     return X_ERROR_DEVICE_NOT_CONNECTED;
@@ -421,12 +490,33 @@ X_RESULT InputSystem::GetState(uint32_t user_index, X_INPUT_STATE* out_state) {
     }
     return X_ERROR_SUCCESS;
   }
+  if (user_index >= 1 && user_index <= 3 && !InputScriptOther(user_index).empty()) {  // culdcept-nx: _p2-_p4
+    if (!ScriptOtherConnected(user_index)) return X_ERROR_DEVICE_NOT_CONNECTED;
+    const uint16_t buttons = ScriptedButtons(InputScriptOther(user_index));
+    static uint32_t packets[4] = {1, 1, 1, 1};
+    static uint16_t lasts[4] = {};
+    if (buttons != lasts[user_index]) {
+      lasts[user_index] = buttons;
+      ++packets[user_index];
+    }
+    if (out_state) {
+      std::memset(out_state, 0, sizeof(*out_state));
+      out_state->packet_number = packets[user_index];
+      out_state->gamepad.buttons = buttons;
+      static bool was_pushed[4] = {};
+      const bool pushed = ScriptedStickPushes(out_state->gamepad, InputScriptOther(user_index));
+      if (pushed || was_pushed[user_index]) out_state->packet_number = ++packets[user_index];
+      was_pushed[user_index] = pushed;
+    }
+    return X_ERROR_SUCCESS;
+  }
   if (!assignment_) {
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   RefreshDevices();
-  std::vector<DeviceId> ids;
+  std::vector<DeviceId>& ids = UserDeviceScratch();  // blur-nx (2026-11-17, audit #27)
   assignment_->DevicesForUser(user_index, ids);
 
   X_INPUT_STATE merged = {};
@@ -464,8 +554,9 @@ X_RESULT InputSystem::SetState(uint32_t user_index, X_INPUT_VIBRATION* vibration
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   RefreshDevices();
-  std::vector<DeviceId> ids;
+  std::vector<DeviceId>& ids = UserDeviceScratch();  // blur-nx (2026-11-17, audit #27)
   assignment_->DevicesForUser(user_index, ids);
 
   // Every pad on this user belongs to the same player, so all of them buzz.
@@ -536,8 +627,9 @@ X_RESULT InputSystem::GetKeystroke(uint32_t user_index, uint32_t flags,
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
+  std::lock_guard<std::recursive_mutex> devices_lock(devices_mutex_);  // sasrt-nx (2026-11-08): devices_mutex_
   RefreshDevices();
-  std::vector<DeviceId> ids;
+  std::vector<DeviceId>& ids = UserDeviceScratch();  // blur-nx (2026-11-17, audit #27)
   assignment_->DevicesForUser(user_index, ids);
 
   bool any_connected = false;

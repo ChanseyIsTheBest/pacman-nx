@@ -74,24 +74,41 @@ unsigned SystemLanguage() {
 
 }  // namespace
 
-void Apply() {
-  std::string name = REXCVAR_GET(language);
+// The language key's Xbox language (the system's for "auto" or an unknown name); the key's name in lower case.
+static unsigned Resolve(std::string& name, bool* known) {
+  name = REXCVAR_GET(language);
   for (char& c : name) c = char(std::tolower(static_cast<unsigned char>(c)));
-  unsigned id = 0;
-  if (name == "english") id = kEnglish;
-  else if (name == "japanese") id = kJapanese;
-  else if (name == "french") id = kFrench;
-  else if (name == "german") id = kGerman;
-  else if (name == "spanish") id = kSpanish;
-  else if (name == "italian") id = kItalian;
-  else if (name == "schinese") id = kSChinese;
-  else if (name == "tchinese") id = kTChinese;
-  else {
-    if (name != "auto") REXLOG_WARN("language = \"{}\" is not known: auto is used", name);
-    id = SystemLanguage();
-  }
+  *known = true;
+  if (name == "english") return kEnglish;
+  if (name == "japanese") return kJapanese;
+  if (name == "french") return kFrench;
+  if (name == "german") return kGerman;
+  if (name == "spanish") return kSpanish;
+  if (name == "italian") return kItalian;
+  if (name == "schinese") return kSChinese;
+  if (name == "tchinese") return kTChinese;
+  *known = name == "auto";
+  return SystemLanguage();
+}
+
+void Apply() {
+  std::string name;
+  bool known = true;
+  const unsigned id = Resolve(name, &known);
+  if (!known) REXLOG_WARN("language = \"{}\" is not known: auto is used", name);
   rex::cvar::SetFlagByName("user_language", std::to_string(id));
   REXLOG_INFO("language: {} (Xbox language {})", name, id);
+}
+
+// Read from the key itself: the game menu's fonts are made (OnConfigureFonts) before OnPostSetup runs Apply. The key is
+// read at start only (the menu writes a new choice for the next one), so this stays what Apply gave the game.
+unsigned XLanguage() {
+  static const unsigned id = [] {
+    std::string name;
+    bool known = true;
+    return Resolve(name, &known);
+  }();
+  return id;
 }
 
 }  // namespace pacman::language

@@ -339,6 +339,14 @@ class XmaContext {
   std::vector<uint64_t> cache_pending_;
   bool DecodeFrame(int prepared, int sample_rate, bool stereo);
 
+  // culdcept-nx (2026-11-20, the user: the game's audio in Opus; the ultimate base's port 259): a frame of a NAME.xmo or
+  // NAME.xmop (rex/filesystem/xmo.h: its packet has a tag) gets its 512 samples from the sound's Opus stream instead of
+  // FFmpeg (xma_context.cpp). `packet` is the frame's packet and `frame_offset` its first bit in it. -1: not such a frame
+  // (decode it as XMA); 1: raw_frame_ holds its samples (silence when they could not be had).
+  struct XmoState;
+  XmoState* xmo_ = nullptr;
+  int DecodeXmoFrame(const uint8_t* packet, uint32_t frame_offset, bool stereo);
+
 };
 
 }  // namespace rex::audio

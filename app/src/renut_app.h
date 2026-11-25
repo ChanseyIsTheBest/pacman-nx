@@ -30,6 +30,8 @@
 #endif
 #include "cpu/banjo_enhancements.h"
 #include "pacman_language.h"  // pacman-nx (2026-11-03): pacman.toml "language"
+#include "game_menu.h"  // blur-nx (2026-11-18, the ultimate base's): the game menu (A+B+X+Y+L+R, F8)
+#include "pacman_menu.h"  // pacman-nx (2026-11-25): its rows for this game
 #if defined(PACMAN_BUILTIN_CONFIG)
 #include "pacman_builtin_config.h"  // generated from app/pacman_switch_defaults.toml and pacman_switch.toml (CMake)
 #endif
@@ -89,6 +91,10 @@ public:
 #endif
     }
 
+    // blur-nx (2026-11-18, the ultimate base's): the game menu's fonts (the console's own shared font) in the SDK
+    // drawer's atlas.
+    void OnConfigureFonts(ImFontAtlas* atlas) override { blur::AddGameMenuFonts(atlas); }
+
 
     // void OnPostSetup() override {
     //     rex::discord_rpc::Presence rpc;
@@ -120,6 +126,12 @@ public:
         // CPU/GPU profiler window ported from UnleashedRecomp (F5 / banjo_show_profiler).
         profiler_dialog_ = std::make_unique<ProfilerOverlayDialog>(drawer);
         drawer->AddDialog(profiler_dialog_.get());
+        // blur-nx (2026-11-18, the ultimate base's; pacman-nx 2026-11-25, the user's request): the game menu, with
+        // PAC-MAN's rows (pacman_menu.cpp). Attached for good (its constructor adds it), it asks for no ImGui frame
+        // while closed (WantsFrame), so the drawer builds none for it then.
+        pacman::menu::Install();
+        game_menu_ = std::make_unique<blur::GameMenuDialog>(drawer, config_path(), [this] { return runtime(); },
+                                                            [this] { return immediate_drawer(); });
 #if !REX_PLATFORM_SWITCH
         path_wizard_ = new PathSetupWizard(drawer);
         drawer->AddDialog(path_wizard_);
@@ -246,6 +258,16 @@ public:
     }
 
     void OnShutdown() override {
+        // The ultimate base's port 269 (the Peggle 2 session's finding): the app's own dialogs go first, while the SDK's
+        // ImGuiDrawer still exists (ReXApp::OnDestroy frees it right after OnShutdown; each ImGuiDialog destructor calls
+        // its RemoveDialog, and Peggle's quit faulted in ImGui::IsAnyMouseDown when ~GameMenuDialog ran later, in the
+        // destructor). The game menu first, then the overlays.
+        game_menu_.reset();
+        profiler_dialog_.reset();
+        fps_dialog_.reset();
+#if !REX_PLATFORM_SWITCH
+        mnk_dialog_.reset();
+#endif
         banjo::profiler::Stop();
 #if BANJO_RENUT_RENDERER
         if (banjo::renut_gpu::Active()) renut::gpu::ShutdownRenderer();
@@ -325,4 +347,5 @@ private:
 #endif
     std::unique_ptr<FpsOverlayDialog> fps_dialog_;
     std::unique_ptr<ProfilerOverlayDialog> profiler_dialog_;
+    std::unique_ptr<blur::GameMenuDialog> game_menu_;  // blur-nx (2026-11-18, the ultimate base's)
 };

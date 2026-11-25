@@ -447,3 +447,127 @@ So the repeated passes did not change what the NRO does, and the pack fix leaves
 **Sizes.** Kameo's limit (a Switch build over 128 MB of code gets a veneer for `svcReturnFromException` and crashes): everyday TU3 build 59.2 MB of text, 0 veneers.
 
 **The LTO build** (`tools/build_switch_release.bat`, 25 minutes at 4 jobs, the first attempt): NRO 63,313,560 bytes, sha256 `8e7910fa523b02c3a4613dd1cb209d6c3932c76f974af9a45edd475c549e3110`, 60.4 MB of text, 0 veneers. Beside it the clean `deko3d_glsl.bin` of 13 shaders (`D:\pacman\tu3_work\release_clean\sd`), the 4 startup shaders built in. SD folder `D:\pacman\builds\SD_CARD_pacman-nx_tu3_lto`, ELF and source in `D:\pacman\builds\2026-11-03_tu3_lto`. The user played it on the console. Its title then got the `+` of DX+ in the NRO itself, 12 bytes of the NACP, so the code stays the build the user played: the released NRO is sha256 `046bd7f177e185990914ebe976be107ff899e4eac5c67468a803afc85ec9b2a2`. `app/CMakeLists.txt` has the new title for later builds; the comment at the top of the default `pacman.toml` still says DX. It replaced the first 1.0.0's asset on the v1.0.0 release, and the tag was moved to this source (the first 1.0.0's is commit `2632cc76`).
+
+## The ultimate base's game menu, rumble, packed files and DLC in place (2026-11-25, branch `ultimate-features`)
+
+**The request.** The user: video and audio compression, ZXC / LZ4 packing of all the files, ZXC for every video, the
+in-game menu with only the release toml's items plus Achievements, P1 to P4 tabs and rumble (on by default, hooked as in
+the ultimate base), the menu's colour, opacity and font, and the DLC read in place, all from the ultimate base
+(`D:\renut-ultimate`, read only; its commit `5e318b38`, port 283). Not a rebase: the pieces were grafted, each from the
+base's own files.
+
+**What the game has to compress** (measured, `out/` scripts in the session's scratchpad):
+- **No videos.** Nothing to re-encode or pack as video.
+- **Audio: three XACT 3 wave banks** (version 46, big-endian `DNBW`, the format word read low bits first as the base's
+  guide has it, and checked against each entry's duration and bitrate). `PCEDXSWB.xwb` (56.6 MB, the music): 14 tracks
+  are **xWMA** at about 63 kbit/s (42.1 MB) and 7 are XMA at about 200 kbit/s (14.5 MB). `PCEDXsnd.xwb` (2.1 MB, the
+  effects): 48 xWMA sounds, 5 six-channel XMA. The update's `pcedlcdefswb.xwb` (3.6 MB): 2 XMA and 2 xWMA. Opus (the
+  base's `.xmop`) can only stand in for XMA, which the SDK's XMA emulation decodes; xWMA is decoded by the game's own
+  XAudio2 code, and it is already below Opus's music bitrates. The six-channel sounds are three streams (kept as XMA,
+  as the guide says). So Opus can cover the 9 XMA tracks (an estimate of about 7 MB, under 2 % of the install). The user
+  said to do it: see "The music as Opus" below; it came to 4.3 MiB (the tracks are 9.5 minutes in all).
+- **Packing** (LZ4 HC 9 in 256 KB blocks against ZXC 7 in 512 KB, every file of the game and the update but the
+  executables, 4 KB and 95 % rules): 235.8 MiB to 227.2 MiB with either codec (227.20 against 227.14). The data files
+  pack to 6-28 % (`.abc` 4.71 to 0.31 MiB, `.bin`, `.tdb`, `.geui`, `.xml`, `.rs`); the PNGs (167 MiB) and the wave
+  banks (60 MiB) are already compressed (11 PNGs and one bank pass the 95 % rule). LZ4, which decodes about 3 times
+  faster: the installer packs 83 files, 11.6 MiB to 3.1 MiB.
+
+**Taken from the base, whole** (the port's copies were katamari-nx-public's, unchanged since):
+- the input layer (`sdk/src/input/input_system.cpp`, `switch/switch_input_driver.cpp` and their headers): `input_rumble`
+  on by default (port 59), the rumble sent from a thread of its own (`input_switch_rumble_thread`, blur-nx), players 3
+  and 4's own button maps (port 55), the menu's buttons (`input_menu_combo`, A+B+X+Y+L+R) and `RebuildButtonMaps`, the
+  controller list under one lock (port 46), a 1 s grace before a pad that drops out is reported gone (port 52), an
+  optional extra stick dead zone (port 195, 0 = off);
+- the ImGui layer (`sdk/src/ui/imgui_dialog.*`, `imgui_drawer.*`, `switch_imgui_input.h`): the game input gate, the
+  font rebuild, no ImGui frame while no dialog shows (`ui_skip_hidden_dialogs`);
+- the file system (`sdk/src/filesystem`, `sdk/include/rex/filesystem`, `sdk/thirdparty/lz4` and `zxc`): `.lz4b`
+  versions 1 and 2, the `.opcm` / `.xmo` / `.xmop` / `.hevc` stand-ins, the lookup, the VFS index version 4 (port 264,
+  with the installer's flag), and the STFS device that reads a package in place (port 265); `rexblockcodecs` and
+  `rexopus` (devkitPro's libopus, linked: the stand-ins' decoders are in the file system);
+- `sdk/src/system/xam/content_manager.cpp` and its header (`RegisterPackageFile`, header-only installs).
+
+**By hand:** `rex_app.cpp`'s input gate line and `rex_app.h`'s `config_path()`, the SDK's `-fno-char8_t` for C++ only,
+the app's CMake (the menu's sources and fonts), `renut_app.h` (the menu made in `OnCreateDialogs`, its fonts in
+`OnConfigureFonts`, freed first in `OnShutdown` with the FPS and profiler overlays, as port 269), `dlc_install.cpp` (the
+base's without Katamari's pack list), the FPS, log and profiler overlays' `WantsFrame`. `host_path_entry.cpp` without
+port 203's truncate of an open file through its shared Horizon handle (sims3-nx's `TruncateOpenFile`, in the base's
+`core/filesystem_posix.cpp`, which this port does not have: the first LTO link stopped on it); the rest of port 203 in the
+copied files (a status check's I/O error not taken as "not found", a supersede that truncates when the delete fails, a
+delete on close) needs nothing else. `game_menu.cpp` is the base's without Katamari's frame cap and
+Blur's four-core file, and with the game's language from `pacman::language::XLanguage()` (read from the key itself: the
+menu's fonts are made before `OnPostSetup` applies the language). `pacman_menu.cpp` keeps the Settings rows to
+`language` (PAC-MAN's eight, `auto` shown as System), `input_rumble`, `input_xbox_layout`, `input_joycon_sideways`,
+`input_joycon_sideways_stick`, `menu_color`, `menu_font` and `menu_background_opacity`.
+
+**Left behind:** everything else of the base's 283 ports, including its renderer and code generation work; the PC-only
+pieces (the keyboard pad's keystrokes, port 66's overlay guard); Blur's 29 XMA changes in the base's
+`xma_context.cpp` (only port 259's Opus hook was taken, below).
+
+**An install from 1.0.0:** the DLC's copy unpacked at its first start (`renut/0000000000000000/58410A8C/00000002/
+AllinOnePack`, about 150 MB) is no longer read; the log names it. The installed list moved from `dlc/` to the user data
+folder, so the first start writes the package's header again (no files).
+
+**Tested:** the installer in Node on the three packages (460,848,687 bytes, the size it announced) and
+`test/check_zip.py` (every file equal to the game and update folders, the 83 `.lz4b` decoded block by block, the index
+equal to the zip's `game_root/`, 880 files). No emulator run (the user's rule); the NRO is for the user's console test.
+
+**The LTO build** (`tools/build_switch_release.bat`, the third attempt): NRO 64,312,984 bytes (1.0 MB more than 1.0.0's), sha256 `1cb9ed4f7bc701cdea94045eb312056ec13c7c01cf1dec30f946f9d560d0dae1`, 61.3 MB of text, 0 veneers. SD folder `D:\pacman\builds\SD_CARD_pacman-nx_menu` (the installer's Node package with this NRO in it), ELF in `D:\pacman\builds\2026-11-25_menu_lto`. Not run anywhere yet: the user tests it on the console.
+
+### The music as Opus (2026-11-25, the user: "Yes, do it")
+
+**The NRO.** Port 259's audio half by hand on this port's own `sdk/src/audio/xma_context.cpp`: `XmaContext::DecodeXmoFrame`
+(the ultimate base's block as it is: a tagged frame's 512 samples from the sound's Opus, a 320 ms pre-roll after a jump,
+the 160/147 resampler for a 44.1 kHz sound) called before FFmpeg in `Decode`, its state freed in the destructor and
+reset in `ResetDecoderState`; `sdk/src/audio/xmo_opus.*` (libopus, linked on the Switch) and `rexaudio` linked to
+`rexopus`. The base's hook tells Blur's frame cache that the next frame has no known predecessor
+(`CachePrev::kUnknown`); this port has banjo-nx's older cache, where that is `cache_node_ = 0`. The file system
+(`xmo.cpp`, the `.xmop` lookup, port 278's 22,050 Hz case) came with the base's file system above. A game without
+`.xmop` files reads no packet tags (`AnyXmoSound`).
+
+**The installer** (pacman-nx-installer, its `lib/music.js` with the ultimate installer's `lib/xmop.js`, `lib/audio.js`,
+`wasm/xma`, and its own XACT 3 reader `lib/xact3.js`): each bank's mono and stereo XMA at 128 kbit/s stereo, 64 mono, 20
+ms packets at 48 kHz (the music's 47,998-48,000 Hz declared 48,000, as the ultimate installer does Katamari's), sound
+ids `0x50` | bank << 12 | sound. The browser's encoder (WebCodecs); none: the music stays XMA.
+
+**Results on the tested copy:**
+
+| Bank | Sounds | As Opus | Size |
+|---|---|---|---|
+| `PCEDXSWB.xwb` (game_root) | 14 xWMA, 7 XMA | the 7 XMA | 54.2 to 50.1 MiB (ffmpeg's libopus; 49.5 MiB with the browser's) |
+| `pcedlcdefswb.xwb` (update) | 2 xWMA, 2 XMA | 1 (the other, 115 kbit/s, is not smaller as Opus) | 3.4 to 3.3 MiB |
+| `PCEDXsnd.xwb` | 48 xWMA, 5 six-channel XMA | none: stays `PCEDXsnd.xwb` | 2.1 MiB |
+
+The zip with the packing: 456,553,321 bytes, against 460,848,687 with the packing alone (and 469,763,804 for 1.0.0's).
+Checked: `test/xmop_check.mjs` on both files (every byte outside the sounds as the bank's, every packet header, frame
+length, last bit and tag; 7,085 and 795 packets); `test/check_zip.py`; each track's Opus against its XMA decode at lag 0,
+18-20 dB (what the ports measured for Opus at any bitrate: it is perceptual), in Node and with the browser's encoder in
+a worker (`test/music_browser.html`, all 7). **Not heard yet**: the console is the test (a PC build plays Opus sounds
+silent without a libopus DLL).
+
+**The LTO build with it:** NRO 64,329,368 bytes, sha256 `f757775606d4e87d668cf127cab65e66a56c5e6363ed926ff9398837c49325ed`, 61.4 MB of text, 0 veneers; libopus's decoder linked. It replaces the one above in `D:\pacman\builds\SD_CARD_pacman-nx_menu` (its game folder now from the zip with the Opus music) and `D:\pacman\builds\2026-11-25_menu_lto`. Not run: the user tests it on the console.
+
+### The DLC's music as Opus (2026-11-25, the user: "Yes, do it")
+
+**Why the package.** The DLC (`AllinOnePack`, 149.0 MiB) packs to nothing (364 PNGs, 4 wave banks; 0.2 MiB with LZ4 or
+ZXC), but its banks `data/xb360/pcedlc0-3swb.xwb` hold 10 stereo XMA tracks, 75 MiB: 6 at about 195 kbit/s and the 4 of
+`pcedlc1swb.xwb` at about 120. The DLC is read in place from its package, so a bank cannot have a `.xmop` of its own.
+
+**The NRO.** `StfsContainerDevice` (`sdk/src/filesystem/devices/stfs_container_device.cpp`) takes a `P.xmop` beside the
+package P, when it holds more than P, as rr6-nx's `P.opcm`: every read of the package goes through it, and P is only the
+package's header (the DLC scan's). `dlc_install.cpp` does not take `P.xmop` for a package. The XMA emulation plays its
+tagged frames as it does a host folder's `.xmop`.
+
+**The installer** (`lib/music.js` packageAsXmop): each bank read through the package's file table, its sounds made Opus as
+the game's are, each sound's packets mapped onto the package's 4 KB blocks (a packet is always inside one: the banks'
+sounds are 2048-byte aligned) and written as segments, one for each run that lies in one piece in P (the hash table
+after every 170 blocks cuts them): 95 segments for 6 sounds. The `.xmop` format names each segment's first byte in its
+sound, so nothing in the SDK's reader changed for it. P is written cut to its header (45,056 bytes).
+
+**Results.** 6 of the 10 tracks (one of them 44.1 kHz: 48 kHz Opus, resampled back by `DecodeXmoFrame`); the 4 at 120
+kbit/s are not smaller as Opus at 128. 149.0 MiB become 134.6 MiB with ffmpeg's libopus, 130.3 MiB with the browser's.
+The zip: 441,522,432 bytes. Checked: `test/xmop_check.mjs` (now for split sounds too) on the whole package: every byte
+outside the sounds is the package's, every header, frame length, last bit and tag right, each sound covered once by its
+segments; each sound's packets gathered from P by its segments equal to its bank's; in a browser worker, every sound's
+gathered packets decoded against its Opus at lag 0, 17-25 dB. **Not heard on a console.**
+
+**The LTO build with it:** NRO 64,329,368 bytes, sha256 `226500a8c3127485bf2b84a7ca6f8420e311b1c3f3851bbf8ce17481ab2ad6ff`, 61.4 MB of text, 0 veneers. The SD folder `D:\pacman\builds\SD_CARD_pacman-nx_menu` (from the zip with the DLC's music as Opus, this NRO in it) holds 421.8 MiB with the DLC. Not run: the user tests it on the console.

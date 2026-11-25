@@ -76,6 +76,8 @@ set(RENUT_SOURCES
     src/main.cpp
     src/pacman_keys.cpp
     src/pacman_language.cpp
+    src/pacman_menu.cpp  # pacman-nx (2026-11-25): the game menu's rows for this game (release toml's keys, rumble, menu look)
+    src/game_menu.cpp  # blur-nx (2026-11-18, the ultimate base's): the game menu (A+B+X+Y+L+R on the Switch, F8 on the PC)
     # katamari-nx (2026-10-31): DLC packages in the "dlc" folder next to the NRO installed at start (reNut upstream's).
     src/renut_engine/dlc_install.cpp
 	src/renut_engine/FPS.cpp
@@ -564,6 +566,22 @@ target_sources(renut PRIVATE
 # Precompiled SPIR-V of the SDK presenter (vulkan_spirv/guest_output_*): the native renderer draws the game
 # image into the presenter output with it.
 target_include_directories(renut PRIVATE "${REXSDK_DIR}/src/ui/shaders")
+# blur-nx (2026-11-18, the ultimate base's; the game menu's font option): Dear ImGui's misc/fonts as byte arrays
+# (game_menu_fonts.h). Their licences: THIRD_PARTY_NOTICES.md.
+set(_blur_menu_fonts_dir "${REXSDK_DIR}/thirdparty/imgui/misc/fonts")
+set(_blur_menu_fonts_text "// Made by app/CMakeLists.txt from ${_blur_menu_fonts_dir} (do not edit).\n#pragma once\n")
+foreach(_pair "kMenuFontProggyTiny:ProggyTiny.ttf" "kMenuFontRoboto:Roboto-Medium.ttf" "kMenuFontKarla:Karla-Regular.ttf"
+              "kMenuFontCousine:Cousine-Regular.ttf")
+    string(REPLACE ":" ";" _parts "${_pair}")
+    list(GET _parts 0 _var)
+    list(GET _parts 1 _file)
+    file(READ "${_blur_menu_fonts_dir}/${_file}" _hex HEX)
+    string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," _hex "${_hex}")
+    string(APPEND _blur_menu_fonts_text "alignas(4) static const unsigned char ${_var}[] = {${_hex}};\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_blur_menu_fonts_dir}/${_file}")
+endforeach()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/game_menu_fonts/game_menu_fonts.h" "${_blur_menu_fonts_text}")
+target_include_directories(renut PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/game_menu_fonts")
 
 foreach(_dep imgui xxhash renderdoc)
     if(TARGET ${_dep})
@@ -599,10 +617,11 @@ if(REXGLUE_PLATFORM_SWITCH)
         set(RENUT_ICON_ARG ICON "${RENUT_ICON}")
     endif()
     # katamari-nx (2026-11-02, the user's request): version 1.0.0, author ChanseyIsTheBest, the user's icon (the cover art).
+    # pacman-nx 1.0.1 (2026-11-25): the game menu, rumble, the packed files and Opus music, the DLC read in place.
     rexglue_switch_add_nro(renut
         NAME "PAC-MAN Championship Edition DX+"
         AUTHOR "ChanseyIsTheBest"
-        VERSION "1.0.0"
+        VERSION "1.0.1"
         ${RENUT_ICON_ARG})
 endif()
 
